@@ -1,0 +1,6 @@
+[workspace]
+
+[contracts]
+duel_manager = { path = "src/duel_manager.rs" }
+trading_engine = { path = "src/trading_engine.rs" }
+price_oracle = { path = "src/price_oracle.rs" }
