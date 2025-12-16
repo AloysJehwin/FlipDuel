@@ -1,6 +1,13 @@
 [workspace]
 
-[contracts]
-duel_manager = { path = "src/duel_manager.rs" }
-trading_engine = { path = "src/trading_engine.rs" }
-price_oracle = { path = "src/price_oracle.rs" }
+[[contracts]]
+path = "src/duel_manager.rs"
+fqn = "duel_manager::DuelManager"
+
+[[contracts]]
+path = "src/trading_engine.rs"
+fqn = "trading_engine::TradingEngine"
+
+[[contracts]]
+path = "src/price_oracle.rs"
+fqn = "price_oracle::PriceOracle"
