@@ -8,7 +8,7 @@ export default function Home() {
   const features = [
     {
       icon: '📅',
-      title: 'Smart Scheduling',
+      title: 'Smart Scheduling1',
       description: 'AI-powered scheduling that learns your preferences and optimizes your day',
       details: ['Auto-prioritization', 'Time blocking', 'Smart suggestions']
     },
