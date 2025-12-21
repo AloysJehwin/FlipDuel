@@ -2,7 +2,7 @@
 // Handles NFT trading simulation and portfolio management
 
 use odra::prelude::*;
-use odra::{casper_types::U512, Address, Mapping, List, Var};
+use odra::casper_types::U512;
 
 #[odra::module]
 pub struct FlipDuelTradingEngine {
@@ -68,10 +68,9 @@ impl FlipDuelTradingEngine {
         let caller = self.env().caller();
         let duel_manager = self.duel_manager.get_or_revert();
         
-        require!(
-            caller == duel_manager,
-            "FlipDuel: Only DuelManager can initialize portfolios"
-        );
+        if caller != duel_manager {
+            self.env().revert(Error::OnlyDuelManager);
+        }
 
         let portfolio = Portfolio {
             player,
@@ -101,14 +100,12 @@ impl FlipDuelTradingEngine {
         // Get current price from oracle
         let price = self.get_nft_price(&nft_id);
         
-        require!(
-            portfolio.cspr_balance >= price,
-            "FlipDuel: Insufficient CSPR balance"
-        );
-        require!(
-            !portfolio.nfts_owned.iter().any(|h| h.nft_id == nft_id),
-            "FlipDuel: Already own this NFT"
-        );
+        if portfolio.cspr_balance < price {
+            self.env().revert(Error::InsufficientBalance);
+        }
+        if portfolio.nfts_owned.iter().any(|h| h.nft_id == nft_id) {
+            self.env().revert(Error::AlreadyOwnsNFT);
+        }
 
         // Update portfolio
         portfolio.cspr_balance = portfolio.cspr_balance - price;
@@ -325,10 +322,9 @@ impl FlipDuelTradingEngine {
         let caller = self.env().caller();
         let oracle = self.price_oracle.get_or_revert();
         
-        require!(
-            caller == oracle,
-            "FlipDuel: Only oracle can update prices"
-        );
+        if caller != oracle {
+            self.env().revert(Error::OnlyOracle);
+        }
         
         self.nft_prices.set(&nft_id, price);
 
@@ -343,10 +339,9 @@ impl FlipDuelTradingEngine {
         let caller = self.env().caller();
         let oracle = self.price_oracle.get_or_revert();
         
-        require!(
-            caller == oracle,
-            "FlipDuel: Only oracle can update prices"
-        );
+        if caller != oracle {
+            self.env().revert(Error::OnlyOracle);
+        }
 
         for (nft_id, price) in updates {
             self.nft_prices.set(&nft_id, price);
@@ -399,4 +394,12 @@ pub struct PriceUpdated {
 #[odra::event]
 pub struct BatchPricesUpdated {
     pub count: u32,
+}
+
+#[odra::odra_error]
+pub enum Error {
+    OnlyDuelManager,
+    InsufficientBalance,
+    AlreadyOwnsNFT,
+    OnlyOracle,
 }

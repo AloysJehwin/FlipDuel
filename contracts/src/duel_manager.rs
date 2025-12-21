@@ -2,7 +2,7 @@
 // Manages competitive NFT trading duels on Casper Network
 
 use odra::prelude::*;
-use odra::{casper_types::U512, Address, Mapping, Var, List};
+use odra::casper_types::U512;
 
 #[odra::module]
 pub struct FlipDuelManager {
@@ -61,11 +61,21 @@ impl FlipDuelManager {
         max_participants: u8,
     ) -> u64 {
         let entry_fee = self.env().attached_value();
-        require!(entry_fee > U512::zero(), "Entry fee must be > 0");
-        require!(duration_seconds >= 60, "Duration must be >= 60 seconds");
-        require!(duration_seconds <= 600, "Duration must be <= 600 seconds (10 min)");
-        require!(max_participants >= 2, "Need at least 2 participants");
-        require!(max_participants <= 10, "Max 10 participants allowed");
+        if entry_fee == U512::zero() {
+            self.env().revert(Error::InvalidEntryFee);
+        }
+        if duration_seconds < 60 {
+            self.env().revert(Error::InvalidDuration);
+        }
+        if duration_seconds > 600 {
+            self.env().revert(Error::InvalidDuration);
+        }
+        if max_participants < 2 {
+            self.env().revert(Error::InvalidParticipantCount);
+        }
+        if max_participants > 10 {
+            self.env().revert(Error::InvalidParticipantCount);
+        }
 
         let duel_id = self.next_duel_id.get_or_default();
         let creator = self.env().caller();
@@ -118,22 +128,18 @@ impl FlipDuelManager {
         let caller = self.env().caller();
         let attached_value = self.env().attached_value();
 
-        require!(
-            matches!(duel.status, DuelStatus::Open),
-            "FlipDuel: Duel not accepting players"
-        );
-        require!(
-            attached_value == duel.entry_fee,
-            "FlipDuel: Incorrect entry fee"
-        );
-        require!(
-            !duel.participants.contains(&caller),
-            "FlipDuel: Already joined this duel"
-        );
-        require!(
-            duel.participants.len() < duel.max_participants as usize,
-            "FlipDuel: Duel is full"
-        );
+        if !matches!(duel.status, DuelStatus::Open) {
+            self.env().revert(Error::DuelNotOpen);
+        }
+        if attached_value != duel.entry_fee {
+            self.env().revert(Error::IncorrectFee);
+        }
+        if duel.participants.contains(&caller) {
+            self.env().revert(Error::AlreadyParticipant);
+        }
+        if duel.participants.len() >= duel.max_participants as usize {
+            self.env().revert(Error::DuelFull);
+        }
 
         duel.participants.push(caller);
         duel.prize_pool = duel.prize_pool + attached_value;
@@ -161,18 +167,15 @@ impl FlipDuelManager {
         let mut duel = self.duels.get(&duel_id).expect("FlipDuel: Duel not found");
         let caller = self.env().caller();
         
-        require!(
-            caller == duel.creator,
-            "FlipDuel: Only creator can manually start"
-        );
-        require!(
-            matches!(duel.status, DuelStatus::Open),
-            "FlipDuel: Duel not in open state"
-        );
-        require!(
-            duel.participants.len() >= 2,
-            "FlipDuel: Need at least 2 players to start"
-        );
+        if caller != duel.creator {
+            self.env().revert(Error::OnlyCreator);
+        }
+        if !matches!(duel.status, DuelStatus::Open) {
+            self.env().revert(Error::DuelNotOpen);
+        }
+        if duel.participants.len() < 2 {
+            self.env().revert(Error::NotEnoughParticipants);
+        }
         
         self.start_duel_internal(&mut duel);
         self.duels.set(&duel_id, duel);
@@ -203,14 +206,12 @@ impl FlipDuelManager {
         let mut duel = self.duels.get(&duel_id).expect("FlipDuel: Duel not found");
         let current_time = self.env().get_block_time();
 
-        require!(
-            matches!(duel.status, DuelStatus::Active),
-            "FlipDuel: Duel not active"
-        );
-        require!(
-            current_time >= duel.end_time,
-            "FlipDuel: Duel time not finished"
-        );
+        if !matches!(duel.status, DuelStatus::Active) {
+            self.env().revert(Error::DuelNotActive);
+        }
+        if current_time < duel.end_time {
+            self.env().revert(Error::DuelNotEnded);
+        }
 
         // Calculate winner (highest gain percentage)
         // In production: Query TradingEngine for each participant's gain
@@ -241,18 +242,15 @@ impl FlipDuelManager {
         let mut duel = self.duels.get(&duel_id).expect("FlipDuel: Duel not found");
         let caller = self.env().caller();
 
-        require!(
-            matches!(duel.status, DuelStatus::Closed),
-            "FlipDuel: Duel not closed yet"
-        );
-        require!(
-            duel.winner == Some(caller),
-            "FlipDuel: You are not the winner"
-        );
-        require!(
-            !duel.claimed,
-            "FlipDuel: Rewards already claimed"
-        );
+        if !matches!(duel.status, DuelStatus::Closed) {
+            self.env().revert(Error::DuelNotClosed);
+        }
+        if duel.winner != Some(caller) {
+            self.env().revert(Error::NotWinner);
+        }
+        if duel.claimed {
+            self.env().revert(Error::AlreadyClaimed);
+        }
 
         let platform_fee_pct = self.platform_fee_percentage.get_or_default();
         let platform_fee = (duel.prize_pool * U512::from(platform_fee_pct)) / U512::from(100);
@@ -287,18 +285,15 @@ impl FlipDuelManager {
         let mut duel = self.duels.get(&duel_id).expect("FlipDuel: Duel not found");
         let caller = self.env().caller();
 
-        require!(
-            caller == duel.creator,
-            "FlipDuel: Only creator can cancel"
-        );
-        require!(
-            matches!(duel.status, DuelStatus::Open),
-            "FlipDuel: Can only cancel open duels"
-        );
-        require!(
-            duel.participants.len() < 2,
-            "FlipDuel: Cannot cancel with 2+ players"
-        );
+        if caller != duel.creator {
+            self.env().revert(Error::OnlyCreator);
+        }
+        if !matches!(duel.status, DuelStatus::Open) {
+            self.env().revert(Error::DuelNotOpen);
+        }
+        if duel.participants.len() >= 2 {
+            self.env().revert(Error::CannotCancel);
+        }
 
         duel.status = DuelStatus::Cancelled;
         self.duels.set(&duel_id, duel);
@@ -356,10 +351,9 @@ impl FlipDuelManager {
 
     /// Update platform fee (admin only)
     pub fn set_platform_fee(&mut self, new_fee_percentage: u8) {
-        require!(
-            new_fee_percentage <= 10,
-            "FlipDuel: Fee cannot exceed 10%"
-        );
+        if new_fee_percentage > 10 {
+            self.env().revert(Error::InvalidFeePercentage);
+        }
         self.platform_fee_percentage.set(new_fee_percentage);
     }
 }
@@ -417,4 +411,24 @@ pub struct RewardsClaimed {
 pub struct DuelCancelled {
     pub duel_id: u64,
     pub refunded_players: u8,
+}
+
+#[odra::odra_error]
+pub enum Error {
+    InvalidEntryFee,
+    InvalidDuration,
+    InvalidParticipantCount,
+    DuelNotOpen,
+    IncorrectFee,
+    AlreadyParticipant,
+    DuelFull,
+    OnlyCreator,
+    NotEnoughParticipants,
+    DuelNotActive,
+    DuelNotEnded,
+    DuelNotClosed,
+    NotWinner,
+    AlreadyClaimed,
+    CannotCancel,
+    InvalidFeePercentage,
 }
