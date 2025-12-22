@@ -1,24 +1,88 @@
-html,
-body {
-  padding: 0;
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  scroll-behavior: smooth;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Press+Start+2P&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-primary-bg text-text-primary antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  /* Subtle CRT scanline effect */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      rgba(18, 16, 16, 0) 50%,
+      rgba(0, 0, 0, 0.15) 50%
+    );
+    background-size: 100% 4px;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0.05;
+  }
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+@layer components {
+  .btn-primary {
+    @apply px-6 py-3 bg-surface border-2 border-neon-green text-neon-green font-semibold rounded-lg transition-all duration-300 hover:bg-neon-green hover:text-primary-bg hover:shadow-neon-green;
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2 bg-surface-light border border-border text-text-primary font-medium rounded-lg transition-all duration-200 hover:border-neon-green hover:text-neon-green;
+  }
+
+  .card {
+    @apply bg-surface border border-border rounded-xl p-6 transition-all duration-300;
+  }
+
+  .card-hover {
+    @apply hover:border-neon-green/50 hover:shadow-glow-sm;
+  }
+
+  .neon-text {
+    @apply text-neon-green;
+    text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+  }
+
+  .arcade-text {
+    @apply font-arcade text-neon-green;
+    text-shadow: 0 0 10px rgba(34, 197, 94, 0.8);
+  }
+
+  .glass-effect {
+    @apply bg-surface/50 backdrop-blur-md border border-border/50;
+  }
+
+  .scrollbar-custom::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .scrollbar-custom::-webkit-scrollbar-track {
+    @apply bg-surface;
+  }
+
+  .scrollbar-custom::-webkit-scrollbar-thumb {
+    @apply bg-surface-light rounded-full;
+  }
+
+  .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+    @apply bg-neon-green/30;
+  }
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-button {
-  font-family: inherit;
+@layer utilities {
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-neon-green via-neon-cyan to-neon-purple;
+  }
 }
