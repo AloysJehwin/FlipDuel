@@ -1,0 +1,32 @@
+# IDE
+.idea
+.vscode
+
+# Build artifacts
+/target
+Cargo.lock
+/wasm
+
+# Odra build artifacts
+.backend*
+.builder*
+
+# Secret keys and credentials (NEVER commit these!)
+*.pem
+secret_key.pem
+Account*.pem
+*.key
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Temporary/generated files
+fix_api.py
+fix_and_build.sh
+fix_all_errors.sh
+
+# OS files
+.DS_Store
+Thumbs.db

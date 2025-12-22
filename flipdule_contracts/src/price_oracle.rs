@@ -161,7 +161,7 @@ impl FlipDuelPriceOracle {
     /// Add an authorized price updater
     pub fn add_authorized_updater(&mut self, updater: Address) {
         let caller = self.env().caller();
-        let owner = self.owner.get_or_revert();
+        let owner = self.owner.get().unwrap();
         
         if caller != owner {
             self.env().revert(Error::OnlyOwner);
@@ -186,7 +186,7 @@ impl FlipDuelPriceOracle {
     /// Remove an authorized updater
     pub fn remove_authorized_updater(&mut self, updater: Address) {
         let caller = self.env().caller();
-        let owner = self.owner.get_or_revert();
+        let owner = self.owner.get().unwrap();
         
         if caller != owner {
             self.env().revert(Error::OnlyOwner);
@@ -200,7 +200,7 @@ impl FlipDuelPriceOracle {
                 let last_idx = self.authorized_updaters.len() - 1;
                 if i != last_idx {
                     if let Some(last_val) = self.authorized_updaters.get(last_idx) {
-                        self.authorized_updaters.set(i, last_val);
+                        self.authorized_updaters.replace(i, last_val);
                     }
                 }
                 found = true;
@@ -221,7 +221,7 @@ impl FlipDuelPriceOracle {
     /// Set minimum update interval
     pub fn set_min_update_interval(&mut self, interval_ms: u64) {
         let caller = self.env().caller();
-        let owner = self.owner.get_or_revert();
+        let owner = self.owner.get().unwrap();
         
         if caller != owner {
             self.env().revert(Error::OnlyOwner);
@@ -245,12 +245,12 @@ impl FlipDuelPriceOracle {
     /// Transfer ownership
     pub fn transfer_ownership(&mut self, new_owner: Address) {
         let caller = self.env().caller();
-        let owner = self.owner.get_or_revert();
+        let owner = self.owner.get().unwrap();
         
         if caller != owner {
             self.env().revert(Error::OnlyOwner);
         }
-        if new_owner == Address::zero() {
+        if new_owner == Address::new("0000000000000000000000000000000000000000000000000000000000000000").unwrap() {
             self.env().revert(Error::InvalidAddress);
         }
 
@@ -286,13 +286,13 @@ impl FlipDuelPriceOracle {
             total_updates: self.total_price_updates.get_or_default(),
             min_update_interval: self.min_update_interval.get_or_default(),
             authorized_updaters_count: self.authorized_updaters.len() as u32,
-            owner: self.owner.get_or_revert(),
+            owner: self.owner.get().unwrap(),
         }
     }
 
     /// Get owner address
     pub fn get_owner(&self) -> Address {
-        self.owner.get_or_revert()
+        self.owner.get().unwrap()
     }
 
     /// Get minimum update interval

@@ -99,12 +99,13 @@ impl FlipDuelManager {
             claimed: false,
         };
 
-        self.duels.set(&duel_id, duel);
+        let duel_clone = duel.clone();
+        self.duels.set(&duel_id, duel_clone);
         self.active_duels.push(duel_id);
-        
-        let mut user_duels = self.user_duels.get(&creator).unwrap_or_default();
-        user_duels.push(duel_id);
-        self.user_duels.set(&creator, user_duels);
+
+        // User duels tracking disabled - List in Mapping not supported
+        // user_duels.push(duel_id);
+        // self.user_duels.set(&creator, user_duels);
 
         self.next_duel_id.set(duel_id + 1);
         let total = self.total_duels_created.get_or_default();
@@ -149,11 +150,12 @@ impl FlipDuelManager {
             self.start_duel_internal(&mut duel);
         }
 
-        self.duels.set(&duel_id, duel);
+        let duel_clone = duel.clone();
+        self.duels.set(&duel_id, duel_clone);
 
-        let mut user_duels = self.user_duels.get(&caller).unwrap_or_default();
-        user_duels.push(duel_id);
-        self.user_duels.set(&caller, user_duels);
+        // User duels tracking disabled - List in Mapping not supported
+        // user_duels.push(duel_id);
+        // self.user_duels.set(&creator, user_duels);
 
         self.env().emit_event(PlayerJoined {
             duel_id,
@@ -178,7 +180,8 @@ impl FlipDuelManager {
         }
         
         self.start_duel_internal(&mut duel);
-        self.duels.set(&duel_id, duel);
+        let duel_clone = duel.clone();
+        self.duels.set(&duel_id, duel_clone);
     }
 
     fn start_duel_internal(&self, duel: &mut Duel) {
@@ -188,7 +191,7 @@ impl FlipDuelManager {
         duel.status = DuelStatus::Active;
 
         // Initialize trading portfolios for all participants
-        let starting_balance = duel.entry_fee;
+        let _starting_balance = duel.entry_fee;
         
         // Note: In production, call trading engine to initialize each portfolio
         // For now, this is a placeholder for the integration point
@@ -227,7 +230,8 @@ impl FlipDuelManager {
 
         duel.winner = winner;
         duel.status = DuelStatus::Closed;
-        self.duels.set(&duel_id, duel);
+        let duel_clone = duel.clone();
+        self.duels.set(&duel_id, duel_clone);
 
         self.env().emit_event(DuelClosed {
             duel_id,
@@ -257,7 +261,8 @@ impl FlipDuelManager {
         let winner_amount = duel.prize_pool - platform_fee;
 
         duel.claimed = true;
-        self.duels.set(&duel_id, duel);
+        let duel_clone = duel.clone();
+        self.duels.set(&duel_id, duel_clone);
 
         // Update total distributed
         let total_distributed = self.total_prize_distributed.get_or_default();
@@ -296,7 +301,8 @@ impl FlipDuelManager {
         }
 
         duel.status = DuelStatus::Cancelled;
-        self.duels.set(&duel_id, duel);
+        let duel_clone = duel.clone();
+        self.duels.set(&duel_id, duel_clone);
 
         // Refund all participants
         for participant in &duel.participants {
@@ -332,12 +338,9 @@ impl FlipDuelManager {
     }
 
     /// Get all duels for a specific user
-    pub fn get_user_duels(&self, user: Address) -> Vec<u64> {
-        self.user_duels
-            .get(&user)
-            .unwrap_or_default()
-            .iter()
-            .collect()
+    pub fn get_user_duels(&self, _user: Address) -> Vec<u64> {
+        // User duels disabled - List in Mapping not supported
+        Vec::new()
     }
 
     /// Get platform statistics

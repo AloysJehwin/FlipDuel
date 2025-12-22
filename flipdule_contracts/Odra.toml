@@ -1,8 +1,8 @@
 [[contracts]]
-fqn = "duel_manager::FlipDuelManager"
+fqn = "price_oracle::FlipDuelPriceOracle"
 
 [[contracts]]
 fqn = "trading_engine::FlipDuelTradingEngine"
 
 [[contracts]]
-fqn = "price_oracle::FlipDuelPriceOracle"
+fqn = "duel_manager::FlipDuelManager"

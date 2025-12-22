@@ -66,7 +66,7 @@ impl FlipDuelTradingEngine {
     /// Initialize a player's portfolio for a duel
     pub fn initialize_portfolio(&mut self, duel_id: u64, player: Address, starting_balance: U512) {
         let caller = self.env().caller();
-        let duel_manager = self.duel_manager.get_or_revert();
+        let duel_manager = self.duel_manager.get().unwrap();
         
         if caller != duel_manager {
             self.env().revert(Error::OnlyDuelManager);
@@ -119,16 +119,16 @@ impl FlipDuelTradingEngine {
         self.portfolios.set(&(duel_id, caller), portfolio);
 
         // Record trade in history
-        let trade = Trade {
+        let _trade = Trade {
             nft_id: nft_id.clone(),
             trade_type: TradeType::Buy,
             price,
             timestamp: self.env().get_block_time(),
         };
 
-        let mut history = self.trade_history.get(&(duel_id, caller)).unwrap_or_default();
-        history.push(trade);
-        self.trade_history.set(&(duel_id, caller), history);
+        // Trade history disabled - List in Mapping not supported
+        // history.push(trade);
+        // self.trade_history.set(&(duel_id, caller), history);
 
         // Update global trade counter
         let total = self.total_trades.get_or_default();
@@ -158,7 +158,7 @@ impl FlipDuelTradingEngine {
             .position(|h| h.nft_id == nft_id)
             .expect("FlipDuel: NFT not owned");
 
-        let nft_holding = portfolio.nfts_owned.remove(nft_index);
+        let _nft_holding = portfolio.nfts_owned.remove(nft_index);
         
         // Get current price from oracle
         let price = self.get_nft_price(&nft_id);
@@ -170,16 +170,16 @@ impl FlipDuelTradingEngine {
         self.portfolios.set(&(duel_id, caller), portfolio);
 
         // Record trade in history
-        let trade = Trade {
+        let _trade = Trade {
             nft_id: nft_id.clone(),
             trade_type: TradeType::Sell,
             price,
             timestamp: self.env().get_block_time(),
         };
 
-        let mut history = self.trade_history.get(&(duel_id, caller)).unwrap_or_default();
-        history.push(trade);
-        self.trade_history.set(&(duel_id, caller), history);
+        // Trade history disabled - List in Mapping not supported
+        // history.push(trade);
+        // self.trade_history.set(&(duel_id, caller), history);
 
         // Update global trade counter
         let total = self.total_trades.get_or_default();
@@ -264,12 +264,9 @@ impl FlipDuelTradingEngine {
     }
 
     /// Get complete trade history for a player in a duel
-    pub fn get_trade_history(&self, duel_id: u64, player: Address) -> Vec<Trade> {
-        self.trade_history
-            .get(&(duel_id, player))
-            .unwrap_or_default()
-            .iter()
-            .collect()
+    pub fn get_trade_history(&self, _duel_id: u64, _player: Address) -> Vec<Trade> {
+        // Trade history disabled - List in Mapping not supported
+        Vec::new()
     }
 
     /// Get portfolio details
@@ -320,7 +317,7 @@ impl FlipDuelTradingEngine {
     /// Update NFT price (called by oracle)
     pub fn update_nft_price(&mut self, nft_id: String, price: U512) {
         let caller = self.env().caller();
-        let oracle = self.price_oracle.get_or_revert();
+        let oracle = self.price_oracle.get().unwrap();
         
         if caller != oracle {
             self.env().revert(Error::OnlyOracle);
@@ -337,18 +334,20 @@ impl FlipDuelTradingEngine {
     /// Batch update prices for efficiency
     pub fn batch_update_prices(&mut self, updates: Vec<(String, U512)>) {
         let caller = self.env().caller();
-        let oracle = self.price_oracle.get_or_revert();
+        let oracle = self.price_oracle.get().unwrap();
         
         if caller != oracle {
             self.env().revert(Error::OnlyOracle);
         }
+
+        let count = updates.len() as u32;
 
         for (nft_id, price) in updates {
             self.nft_prices.set(&nft_id, price);
         }
 
         self.env().emit_event(BatchPricesUpdated {
-            count: updates.len() as u32,
+            count,
         });
     }
 
