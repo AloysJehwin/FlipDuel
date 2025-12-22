@@ -11,6 +11,7 @@ pub struct FlipDuelTradingEngine {
     nft_prices: Mapping<String, U512>,
     price_oracle: Var<Address>,
     duel_manager: Var<Address>,
+    owner: Var<Address>,
     total_trades: Var<u64>,
 }
 
@@ -57,10 +58,30 @@ pub struct PortfolioStats {
 #[odra::module]
 impl FlipDuelTradingEngine {
     /// Initialize the trading engine
-    pub fn init(&mut self, price_oracle_addr: Address, duel_manager_addr: Address) {
-        self.price_oracle.set(price_oracle_addr);
-        self.duel_manager.set(duel_manager_addr);
+    pub fn init(&mut self) {
+        let caller = self.env().caller();
+        self.owner.set(caller);
         self.total_trades.set(0);
+    }
+
+    /// Set price oracle address (owner only)
+    pub fn set_price_oracle(&mut self, price_oracle_addr: Address) {
+        let caller = self.env().caller();
+        let owner = self.owner.get().unwrap();
+        if caller != owner {
+            self.env().revert(Error::Unauthorized);
+        }
+        self.price_oracle.set(price_oracle_addr);
+    }
+
+    /// Set duel manager address (owner only)
+    pub fn set_duel_manager(&mut self, duel_manager_addr: Address) {
+        let caller = self.env().caller();
+        let owner = self.owner.get().unwrap();
+        if caller != owner {
+            self.env().revert(Error::Unauthorized);
+        }
+        self.duel_manager.set(duel_manager_addr);
     }
 
     /// Initialize a player's portfolio for a duel
@@ -401,4 +422,5 @@ pub enum Error {
     InsufficientBalance,
     AlreadyOwnsNFT,
     OnlyOracle,
+    Unauthorized,
 }

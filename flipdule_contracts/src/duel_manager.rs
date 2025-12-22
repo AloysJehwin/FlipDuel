@@ -11,6 +11,7 @@ pub struct FlipDuelManager {
     user_duels: Mapping<Address, List<u64>>,
     next_duel_id: Var<u64>,
     trading_engine: Var<Address>,
+    owner: Var<Address>,
     platform_fee_percentage: Var<u8>,
     total_duels_created: Var<u64>,
     total_prize_distributed: Var<U512>,
@@ -44,12 +45,23 @@ pub enum DuelStatus {
 #[odra::module]
 impl FlipDuelManager {
     /// Initialize the FlipDuel contract
-    pub fn init(&mut self, trading_engine_addr: Address) {
+    pub fn init(&mut self) {
+        let caller = self.env().caller();
+        self.owner.set(caller);
         self.next_duel_id.set(1);
-        self.trading_engine.set(trading_engine_addr);
         self.platform_fee_percentage.set(5); // 5% platform fee
         self.total_duels_created.set(0);
         self.total_prize_distributed.set(U512::zero());
+    }
+
+    /// Set trading engine address (owner only)
+    pub fn set_trading_engine(&mut self, trading_engine_addr: Address) {
+        let caller = self.env().caller();
+        let owner = self.owner.get().unwrap();
+        if caller != owner {
+            self.env().revert(Error::Unauthorized);
+        }
+        self.trading_engine.set(trading_engine_addr);
     }
 
     /// Create a new trading duel
@@ -430,6 +442,7 @@ pub enum Error {
     DuelNotActive,
     DuelNotEnded,
     DuelNotClosed,
+    Unauthorized,
     NotWinner,
     AlreadyClaimed,
     CannotCancel,

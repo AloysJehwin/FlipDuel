@@ -16,6 +16,10 @@ Cargo.lock
 secret_key.pem
 Account*.pem
 *.key
+user1_secret_key.pem
+user2_secret_key.pem
+user1_public_key.pem
+user2_public_key.pem
 
 # Environment files
 .env
