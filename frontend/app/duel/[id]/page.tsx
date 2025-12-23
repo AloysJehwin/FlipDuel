@@ -117,13 +117,13 @@ export default function DuelArenaPage() {
         <div className="max-w-7xl mx-auto">
           {/* Timer Header */}
           <div className="retro-frame bg-retro-gradient mb-6 p-6 text-center">
-            <div className="text-sm retro-subheading text-text-light mb-2">
+            <div className="text-sm retro-subheading text-retro-cream mb-2">
               TIME REMAINING
             </div>
-            <div className="text-6xl font-retro text-text-light mb-2 tracking-wider">
+            <div className="text-6xl font-retro text-retro-cream mb-2 tracking-wider">
               {formatTime(timeRemaining)}
             </div>
-            <div className="text-sm text-text-light">
+            <div className="text-sm text-retro-cream">
               Trading ETH • Entry Fee: 0.1 ETH
             </div>
           </div>
@@ -135,31 +135,31 @@ export default function DuelArenaPage() {
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <div className="retro-badge bg-retro-yellow mb-2">YOU</div>
-                  <div className="font-mono text-sm text-text-primary">
+                  <div className="font-mono text-sm text-retro-charcoal">
                     {player1.address}
                   </div>
                 </div>
                 <div className={`text-3xl font-display ${
-                  player1.pnlPercent >= 0 ? 'text-text-primary' : 'text-text-light'
+                  player1.pnlPercent >= 0 ? 'text-retro-charcoal' : 'text-retro-cream'
                 }`}>
                   {player1.pnlPercent > 0 ? '+' : ''}{player1.pnlPercent.toFixed(2)}%
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-surface/80 border-[3px] border-border p-3">
+                <div className="bg-surface/80 border-[3px] border-retro-charcoal p-3">
                   <div className="text-xs text-text-muted uppercase">Holdings</div>
-                  <div className="font-bold text-text-primary">{player1.holdings.toFixed(4)} ETH</div>
+                  <div className="font-bold text-retro-charcoal">{player1.holdings.toFixed(4)} ETH</div>
                 </div>
-                <div className="bg-surface/80 border-[3px] border-border p-3">
+                <div className="bg-surface/80 border-[3px] border-retro-charcoal p-3">
                   <div className="text-xs text-text-muted uppercase">Cash</div>
-                  <div className="font-bold text-text-primary">{player1.cash.toFixed(4)} ETH</div>
+                  <div className="font-bold text-retro-charcoal">{player1.cash.toFixed(4)} ETH</div>
                 </div>
-                <div className="bg-surface/80 border-[3px] border-border p-3">
+                <div className="bg-surface/80 border-[3px] border-retro-charcoal p-3">
                   <div className="text-xs text-text-muted uppercase">Total Value</div>
                   <div className="font-bold text-retro-blue">{player1.totalValue.toFixed(4)} ETH</div>
                 </div>
-                <div className="bg-surface/80 border-[3px] border-border p-3">
+                <div className="bg-surface/80 border-[3px] border-retro-charcoal p-3">
                   <div className="text-xs text-text-muted uppercase">P&L</div>
                   <div className={`font-bold ${player1.pnl >= 0 ? 'text-retro-green' : 'text-retro-coral'}`}>
                     {player1.pnl > 0 ? '+' : ''}{player1.pnl.toFixed(4)} ETH
@@ -172,32 +172,32 @@ export default function DuelArenaPage() {
             <div className={`card-retro ${!isWinning ? 'bg-retro-green' : 'bg-retro-coral'}`}>
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <div className="retro-badge bg-retro-blue text-text-light mb-2">OPPONENT</div>
-                  <div className="font-mono text-sm text-text-primary">
+                  <div className="retro-badge bg-retro-blue text-retro-cream mb-2">OPPONENT</div>
+                  <div className="font-mono text-sm text-retro-charcoal">
                     {player2.address}
                   </div>
                 </div>
                 <div className={`text-3xl font-display ${
-                  player2.pnlPercent >= 0 ? 'text-text-primary' : 'text-text-light'
+                  player2.pnlPercent >= 0 ? 'text-retro-charcoal' : 'text-retro-cream'
                 }`}>
                   {player2.pnlPercent > 0 ? '+' : ''}{player2.pnlPercent.toFixed(2)}%
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-surface/80 border-[3px] border-border p-3">
+                <div className="bg-surface/80 border-[3px] border-retro-charcoal p-3">
                   <div className="text-xs text-text-muted uppercase">Holdings</div>
-                  <div className="font-bold text-text-primary">{player2.holdings.toFixed(4)} ETH</div>
+                  <div className="font-bold text-retro-charcoal">{player2.holdings.toFixed(4)} ETH</div>
                 </div>
-                <div className="bg-surface/80 border-[3px] border-border p-3">
+                <div className="bg-surface/80 border-[3px] border-retro-charcoal p-3">
                   <div className="text-xs text-text-muted uppercase">Cash</div>
-                  <div className="font-bold text-text-primary">{player2.cash.toFixed(4)} ETH</div>
+                  <div className="font-bold text-retro-charcoal">{player2.cash.toFixed(4)} ETH</div>
                 </div>
-                <div className="bg-surface/80 border-[3px] border-border p-3">
+                <div className="bg-surface/80 border-[3px] border-retro-charcoal p-3">
                   <div className="text-xs text-text-muted uppercase">Total Value</div>
                   <div className="font-bold text-retro-blue">{player2.totalValue.toFixed(4)} ETH</div>
                 </div>
-                <div className="bg-surface/80 border-[3px] border-border p-3">
+                <div className="bg-surface/80 border-[3px] border-retro-charcoal p-3">
                   <div className="text-xs text-text-muted uppercase">P&L</div>
                   <div className={`font-bold ${player2.pnl >= 0 ? 'text-retro-green' : 'text-retro-coral'}`}>
                     {player2.pnl > 0 ? '+' : ''}{player2.pnl.toFixed(4)} ETH
@@ -211,7 +211,7 @@ export default function DuelArenaPage() {
             {/* Price Chart Area */}
             <div className="lg:col-span-2 space-y-6">
               {/* Current Price */}
-              <div className="card-retro bg-retro-blue text-text-light">
+              <div className="card-retro bg-retro-blue text-retro-cream">
                 <div className="flex justify-between items-center">
                   <div>
                     <div className="text-sm uppercase mb-1">ETH Current Price</div>
@@ -227,14 +227,14 @@ export default function DuelArenaPage() {
               {/* Mock Chart */}
               <div className="card-retro">
                 <div className="retro-subheading mb-4">PRICE CHART</div>
-                <div className="bg-win95-light border-4 border-border p-8 h-64 flex items-center justify-center">
+                <div className="bg-retro-beige border-4 border-retro-charcoal p-8 h-64 flex items-center justify-center">
                   <div className="text-center text-text-muted">
                     <div className="w-16 h-16 mx-auto mb-4 opacity-30">
                       <svg viewBox="0 0 100 100" className="w-full h-full">
-                        <polyline points="10,90 30,60 50,70 70,30 90,50" fill="none" stroke="currentColor" strokeWidth="4" className="text-text-primary" />
-                        <circle cx="30" cy="60" r="4" className="fill-border" />
-                        <circle cx="50" cy="70" r="4" className="fill-border" />
-                        <circle cx="70" cy="30" r="4" className="fill-border" />
+                        <polyline points="10,90 30,60 50,70 70,30 90,50" fill="none" stroke="currentColor" strokeWidth="4" className="text-retro-charcoal" />
+                        <circle cx="30" cy="60" r="4" className="fill-retro-charcoal" />
+                        <circle cx="50" cy="70" r="4" className="fill-retro-charcoal" />
+                        <circle cx="70" cy="30" r="4" className="fill-retro-charcoal" />
                       </svg>
                     </div>
                     <div className="text-sm">Live price chart will display here</div>
@@ -253,7 +253,7 @@ export default function DuelArenaPage() {
                     </div>
                   ) : (
                     player1.trades.map((trade, idx) => (
-                      <div key={idx} className="flex justify-between items-center bg-surface border-2 border-border p-2">
+                      <div key={idx} className="flex justify-between items-center bg-surface border-2 border-retro-charcoal p-2">
                         <div className={`retro-badge ${trade.type === 'BUY' ? 'bg-retro-green' : 'bg-retro-coral'}`}>
                           {trade.type}
                         </div>
@@ -284,7 +284,7 @@ export default function DuelArenaPage() {
                       value={tradeAmount}
                       onChange={(e) => setTradeAmount(e.target.value)}
                       placeholder="0.0000"
-                      className="w-full px-4 py-3 border-4 border-border bg-surface text-text-primary font-bold text-lg focus:outline-none focus:border-retro-blue"
+                      className="w-full px-4 py-3 border-4 border-retro-charcoal bg-surface text-retro-charcoal font-bold text-lg focus:outline-none focus:border-retro-blue"
                     />
                   </div>
 
@@ -314,10 +314,10 @@ export default function DuelArenaPage() {
                 <div className={`retro-frame p-4 text-center ${
                   isWinning ? 'bg-retro-green' : 'bg-retro-coral'
                 }`}>
-                  <div className="text-sm uppercase mb-2 text-text-primary font-bold">
+                  <div className="text-sm uppercase mb-2 text-retro-charcoal font-bold">
                     {isWinning ? 'YOU ARE WINNING!' : 'YOU ARE LOSING'}
                   </div>
-                  <div className="text-xs text-text-primary">
+                  <div className="text-xs text-retro-charcoal">
                     {isWinning
                       ? 'Keep up the great trading!'
                       : 'Make smart moves to turn it around!'}
@@ -325,12 +325,12 @@ export default function DuelArenaPage() {
                 </div>
 
                 {/* Quick Stats */}
-                <div className="card bg-win95-light">
+                <div className="card bg-retro-beige">
                   <div className="retro-subheading text-sm mb-3">QUICK STATS</div>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-text-muted">Current Rank</span>
-                      <span className="font-bold text-text-primary">
+                      <span className="font-bold text-retro-charcoal">
                         {isWinning ? '1st' : '2nd'}
                       </span>
                     </div>

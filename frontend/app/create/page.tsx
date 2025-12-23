@@ -68,10 +68,10 @@ export default function CreateDuelPage() {
                         setEntryFee(preset)
                         setCustomEntry('')
                       }}
-                      className={`py-3 border-[3px] border-border font-bold uppercase transition-all ${
+                      className={`py-3 border-[3px] border-retro-charcoal font-bold uppercase transition-all ${
                         entryFee === preset && !customEntry
-                          ? 'bg-retro-coral text-text-light shadow-retro'
-                          : 'bg-surface text-text-primary hover:bg-retro-tan'
+                          ? 'bg-retro-coral text-retro-cream shadow-retro'
+                          : 'bg-surface text-retro-charcoal hover:bg-retro-tan'
                       }`}
                     >
                       {preset} ETH
@@ -96,9 +96,9 @@ export default function CreateDuelPage() {
                         setEntryFee(parseFloat(e.target.value) || 0)
                       }}
                       placeholder="0.00"
-                      className="flex-1 px-4 py-3 border-4 border-border bg-surface text-text-primary font-bold text-lg focus:outline-none focus:border-retro-blue"
+                      className="flex-1 px-4 py-3 border-4 border-retro-charcoal bg-surface text-retro-charcoal font-bold text-lg focus:outline-none focus:border-retro-blue"
                     />
-                    <div className="px-4 py-3 bg-win95-light border-4 border-border font-bold">
+                    <div className="px-4 py-3 bg-retro-beige border-4 border-retro-charcoal font-bold">
                       ETH
                     </div>
                   </div>
@@ -122,10 +122,10 @@ export default function CreateDuelPage() {
                     <button
                       key={token}
                       onClick={() => setSelectedToken(token)}
-                      className={`py-4 border-4 border-border font-bold text-lg uppercase transition-all ${
+                      className={`py-4 border-4 border-retro-charcoal font-bold text-lg uppercase transition-all ${
                         selectedToken === token
-                          ? 'bg-retro-blue text-text-light shadow-retro scale-105'
-                          : 'bg-surface text-text-primary hover:bg-retro-tan'
+                          ? 'bg-retro-blue text-retro-cream shadow-retro scale-105'
+                          : 'bg-surface text-retro-charcoal hover:bg-retro-tan'
                       }`}
                     >
                       {token}
@@ -148,10 +148,10 @@ export default function CreateDuelPage() {
                     <button
                       key={dur}
                       onClick={() => setDuration(dur)}
-                      className={`py-3 border-[3px] border-border font-bold uppercase transition-all ${
+                      className={`py-3 border-[3px] border-retro-charcoal font-bold uppercase transition-all ${
                         duration === dur
-                          ? 'bg-retro-green text-text-light shadow-retro'
-                          : 'bg-surface text-text-primary hover:bg-retro-tan'
+                          ? 'bg-retro-green text-retro-cream shadow-retro'
+                          : 'bg-surface text-retro-charcoal hover:bg-retro-tan'
                       }`}
                     >
                       {dur} MIN
@@ -169,10 +169,10 @@ export default function CreateDuelPage() {
                 <div className="space-y-3">
                   <button
                     onClick={() => setIsPrivate(false)}
-                    className={`w-full p-4 border-4 border-border text-left transition-all ${
+                    className={`w-full p-4 border-4 border-retro-charcoal text-left transition-all ${
                       !isPrivate
-                        ? 'bg-retro-blue text-text-light shadow-retro'
-                        : 'bg-surface text-text-primary hover:bg-retro-tan'
+                        ? 'bg-retro-blue text-retro-cream shadow-retro'
+                        : 'bg-surface text-retro-charcoal hover:bg-retro-tan'
                     }`}
                   >
                     <div className="font-bold text-lg mb-1">PUBLIC</div>
@@ -183,10 +183,10 @@ export default function CreateDuelPage() {
 
                   <button
                     onClick={() => setIsPrivate(true)}
-                    className={`w-full p-4 border-4 border-border text-left transition-all ${
+                    className={`w-full p-4 border-4 border-retro-charcoal text-left transition-all ${
                       isPrivate
-                        ? 'bg-retro-blue text-text-light shadow-retro'
-                        : 'bg-surface text-text-primary hover:bg-retro-tan'
+                        ? 'bg-retro-blue text-retro-cream shadow-retro'
+                        : 'bg-surface text-retro-charcoal hover:bg-retro-tan'
                     }`}
                   >
                     <div className="font-bold text-lg mb-1">PRIVATE</div>
@@ -202,12 +202,12 @@ export default function CreateDuelPage() {
             <div className="lg:col-span-1">
               <div className="sticky top-24">
                 <div className="retro-frame bg-retro-gradient p-6">
-                  <h3 className="retro-subheading text-lg mb-4 text-text-light">
+                  <h3 className="retro-subheading text-lg mb-4 text-retro-cream">
                     DUEL SUMMARY
                   </h3>
 
                   <div className="space-y-4 mb-6">
-                    <div className="bg-surface/90 border-[3px] border-border p-3">
+                    <div className="bg-surface/90 border-[3px] border-retro-charcoal p-3">
                       <div className="text-xs text-text-muted uppercase mb-1">
                         Your Entry Fee
                       </div>
@@ -216,7 +216,7 @@ export default function CreateDuelPage() {
                       </div>
                     </div>
 
-                    <div className="bg-surface/90 border-[3px] border-border p-3">
+                    <div className="bg-surface/90 border-[3px] border-retro-charcoal p-3">
                       <div className="text-xs text-text-muted uppercase mb-1">
                         Trading Token
                       </div>
@@ -225,7 +225,7 @@ export default function CreateDuelPage() {
                       </div>
                     </div>
 
-                    <div className="bg-surface/90 border-[3px] border-border p-3">
+                    <div className="bg-surface/90 border-[3px] border-retro-charcoal p-3">
                       <div className="text-xs text-text-muted uppercase mb-1">
                         Duration
                       </div>
@@ -234,11 +234,11 @@ export default function CreateDuelPage() {
                       </div>
                     </div>
 
-                    <div className="bg-retro-yellow border-[3px] border-border p-3 shadow-retro-inset">
+                    <div className="bg-retro-yellow border-[3px] border-retro-charcoal p-3 shadow-retro-inset">
                       <div className="text-xs text-text-muted uppercase mb-1">
                         Total Prize Pool
                       </div>
-                      <div className="text-2xl font-display text-text-primary">
+                      <div className="text-2xl font-display text-retro-charcoal">
                         {potentialWinnings.toFixed(3)} ETH
                       </div>
                     </div>
@@ -248,7 +248,7 @@ export default function CreateDuelPage() {
                         <span>Platform Fee (5%)</span>
                         <span>{platformFee.toFixed(4)} ETH</span>
                       </div>
-                      <div className="flex justify-between font-bold text-text-primary">
+                      <div className="flex justify-between font-bold text-retro-charcoal">
                         <span>Net Winnings</span>
                         <span>{netWinnings.toFixed(3)} ETH</span>
                       </div>
@@ -271,9 +271,9 @@ export default function CreateDuelPage() {
                 </div>
 
                 {/* Info Box */}
-                <div className="card mt-6 bg-win95-light">
+                <div className="card mt-6 bg-retro-beige">
                   <div className="text-sm space-y-2">
-                    <div className="font-bold text-text-primary">💡 Quick Tips</div>
+                    <div className="font-bold text-retro-charcoal">💡 Quick Tips</div>
                     <ul className="text-text-muted space-y-1 text-xs">
                       <li>• Higher entry fees attract experienced traders</li>
                       <li>• Shorter duels = faster action</li>

@@ -123,7 +123,7 @@ export default function HistoryPage() {
             </h1>
             <div className="card-retro inline-block px-6 py-3 mb-4">
               <div className="text-xs text-text-muted uppercase mb-1">Your Wallet</div>
-              <div className="font-mono font-bold text-text-primary text-lg">{userWalletAddress}</div>
+              <div className="font-mono font-bold text-retro-charcoal text-lg">{userWalletAddress}</div>
             </div>
             <p className="text-text-muted">
               Track your performance and past duels
@@ -170,7 +170,7 @@ export default function HistoryPage() {
               <div>
                 <div className="text-sm text-text-muted uppercase mb-2">Best Token</div>
                 <div className="flex items-center gap-2">
-                  <span className="retro-badge bg-retro-blue text-text-light">ETH</span>
+                  <span className="retro-badge bg-retro-blue text-retro-cream">ETH</span>
                   <span className="text-retro-green font-bold">75% WR</span>
                 </div>
               </div>
@@ -193,34 +193,34 @@ export default function HistoryPage() {
 
           {/* Filters */}
           <div className="mb-6">
-            <div className="card bg-win95-light p-4">
+            <div className="card bg-retro-beige p-4">
               <div className="flex gap-3 justify-center">
                 <button
                   onClick={() => setFilter('all')}
-                  className={`px-6 py-2 border-[3px] border-border font-bold uppercase transition-all ${
+                  className={`px-6 py-2 border-[3px] border-retro-charcoal font-bold uppercase transition-all ${
                     filter === 'all'
-                      ? 'bg-retro-blue text-text-light shadow-retro'
-                      : 'bg-surface text-text-primary hover:bg-retro-tan'
+                      ? 'bg-retro-blue text-retro-cream shadow-retro'
+                      : 'bg-surface text-retro-charcoal hover:bg-retro-tan'
                   }`}
                 >
                   All Duels
                 </button>
                 <button
                   onClick={() => setFilter('won')}
-                  className={`px-6 py-2 border-[3px] border-border font-bold uppercase transition-all ${
+                  className={`px-6 py-2 border-[3px] border-retro-charcoal font-bold uppercase transition-all ${
                     filter === 'won'
-                      ? 'bg-retro-green text-text-light shadow-retro'
-                      : 'bg-surface text-text-primary hover:bg-retro-tan'
+                      ? 'bg-retro-green text-retro-cream shadow-retro'
+                      : 'bg-surface text-retro-charcoal hover:bg-retro-tan'
                   }`}
                 >
                   Wins Only
                 </button>
                 <button
                   onClick={() => setFilter('lost')}
-                  className={`px-6 py-2 border-[3px] border-border font-bold uppercase transition-all ${
+                  className={`px-6 py-2 border-[3px] border-retro-charcoal font-bold uppercase transition-all ${
                     filter === 'lost'
-                      ? 'bg-retro-coral text-text-light shadow-retro'
-                      : 'bg-surface text-text-primary hover:bg-retro-tan'
+                      ? 'bg-retro-coral text-retro-cream shadow-retro'
+                      : 'bg-surface text-retro-charcoal hover:bg-retro-tan'
                   }`}
                 >
                   Losses Only
@@ -233,7 +233,7 @@ export default function HistoryPage() {
           <div className="card-retro overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b-4 border-border">
+                <tr className="border-b-4 border-retro-charcoal">
                   <th className="text-left py-3 px-4 retro-subheading text-sm">Date</th>
                   <th className="text-left py-3 px-4 retro-subheading text-sm">Opponent</th>
                   <th className="text-left py-3 px-4 retro-subheading text-sm">Token</th>
@@ -247,7 +247,7 @@ export default function HistoryPage() {
               </thead>
               <tbody>
                 {filteredHistory.map((duel) => (
-                  <tr key={duel.id} className="border-b-2 border-border/20 hover:bg-retro-tan/20 transition-colors">
+                  <tr key={duel.id} className="border-b-2 border-retro-charcoal/20 hover:bg-retro-tan/20 transition-colors">
                     <td className="py-3 px-4 text-sm text-text-muted">
                       {duel.date}
                     </td>
@@ -255,7 +255,7 @@ export default function HistoryPage() {
                       {duel.opponent}
                     </td>
                     <td className="py-3 px-4">
-                      <span className="retro-badge bg-retro-blue text-text-light text-xs">
+                      <span className="retro-badge bg-retro-blue text-retro-cream text-xs">
                         {duel.token}
                       </span>
                     </td>
@@ -285,7 +285,7 @@ export default function HistoryPage() {
                     <td className="py-3 px-4">
                       <span className={`retro-badge ${
                         duel.result === 'won' ? 'bg-retro-green' : 'bg-retro-coral'
-                      } text-text-light`}>
+                      } text-retro-cream`}>
                         {duel.result === 'won' ? 'WON' : 'LOST'}
                       </span>
                     </td>
@@ -316,10 +316,10 @@ export default function HistoryPage() {
               <div className="retro-frame inline-block p-8">
                 <div className="w-24 h-24 mx-auto mb-4 opacity-30">
                   <svg viewBox="0 0 100 100" className="w-full h-full">
-                    <polyline points="10,90 30,60 50,70 70,40 90,50" fill="none" stroke="currentColor" strokeWidth="6" className="text-text-primary" />
-                    <circle cx="30" cy="60" r="5" className="fill-border" />
-                    <circle cx="50" cy="70" r="5" className="fill-border" />
-                    <circle cx="70" cy="40" r="5" className="fill-border" />
+                    <polyline points="10,90 30,60 50,70 70,40 90,50" fill="none" stroke="currentColor" strokeWidth="6" className="text-retro-charcoal" />
+                    <circle cx="30" cy="60" r="5" className="fill-retro-charcoal" />
+                    <circle cx="50" cy="70" r="5" className="fill-retro-charcoal" />
+                    <circle cx="70" cy="40" r="5" className="fill-retro-charcoal" />
                   </svg>
                 </div>
                 <h3 className="retro-heading text-2xl mb-2">NO DUELS FOUND</h3>

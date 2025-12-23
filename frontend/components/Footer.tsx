@@ -5,13 +5,13 @@ export default function Footer() {
   const currentYear = new Date().getFullYear()
 
   return (
-    <footer className="border-t-4 border-border bg-win95-light mt-16">
+    <footer className="border-t-4 border-retro-charcoal bg-transparent mt-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           {/* Brand */}
           <div className="md:col-span-2">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-retro-coral border-4 border-border flex items-center justify-center shadow-retro">
+              <div className="w-12 h-12 bg-retro-coral border-4 border-retro-charcoal flex items-center justify-center shadow-retro">
                 <span className="text-2xl">⚔️</span>
               </div>
               <div>
@@ -57,21 +57,21 @@ export default function Footer() {
             <div className="flex items-center gap-2 flex-wrap">
               <a
                 href="#"
-                className="w-12 h-12 bg-retro-blue border-4 border-border flex items-center justify-center text-text-light hover:translate-x-1 hover:translate-y-1 hover:shadow-none shadow-retro transition-all"
+                className="w-12 h-12 bg-retro-blue border-4 border-retro-charcoal flex items-center justify-center text-retro-cream hover:translate-x-1 hover:translate-y-1 hover:shadow-none shadow-retro transition-all"
                 aria-label="Twitter"
               >
                 <Twitter className="w-5 h-5" />
               </a>
               <a
                 href="#"
-                className="w-12 h-12 bg-retro-blue border-4 border-border flex items-center justify-center text-text-light hover:translate-x-1 hover:translate-y-1 hover:shadow-none shadow-retro transition-all"
+                className="w-12 h-12 bg-retro-blue border-4 border-retro-charcoal flex items-center justify-center text-retro-cream hover:translate-x-1 hover:translate-y-1 hover:shadow-none shadow-retro transition-all"
                 aria-label="Discord"
               >
                 <MessageCircle className="w-5 h-5" />
               </a>
               <a
                 href="#"
-                className="w-12 h-12 bg-border border-4 border-border flex items-center justify-center text-text-light hover:translate-x-1 hover:translate-y-1 hover:shadow-none shadow-retro transition-all"
+                className="w-12 h-12 bg-retro-charcoal border-4 border-retro-charcoal flex items-center justify-center text-retro-cream hover:translate-x-1 hover:translate-y-1 hover:shadow-none shadow-retro transition-all"
                 aria-label="GitHub"
               >
                 <Github className="w-5 h-5" />
@@ -81,7 +81,7 @@ export default function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="pt-6 border-t-4 border-border">
+        <div className="pt-6 border-t-4 border-retro-charcoal">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-xs text-text-muted font-bold uppercase">
               © {currentYear} FlipDuel. All rights reserved.

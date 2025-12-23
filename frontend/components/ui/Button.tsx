@@ -19,7 +19,7 @@ export default function Button({
   
   const variantStyles = {
     primary: 'bg-surface border-2 border-neon-green text-neon-green hover:bg-neon-green hover:text-primary-bg hover:shadow-neon-green',
-    secondary: 'bg-surface-light border border-border text-text-primary hover:border-neon-green hover:text-neon-green',
+    secondary: 'bg-surface-light border border-retro-charcoal text-retro-charcoal hover:border-neon-green hover:text-neon-green',
     ghost: 'bg-transparent text-text-muted hover:text-neon-green hover:bg-surface-light/50',
   }
   

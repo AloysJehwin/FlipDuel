@@ -52,13 +52,13 @@ export default function Home() {
               <h1 className="retro-heading text-5xl md:text-7xl mb-4">
                 FLIP DUEL
               </h1>
-              <p className="retro-subheading text-xl md:text-2xl text-text-primary">
+              <p className="retro-subheading text-xl md:text-2xl text-retro-charcoal">
                 LIVE CRYPTO TRADING DUELS
               </p>
 
               {/* Corner Accent Triangles */}
-              <div className="absolute -top-3 -left-3 w-6 h-6 bg-retro-yellow border-2 border-border transform rotate-45"></div>
-              <div className="absolute -bottom-3 -right-3 w-6 h-6 bg-retro-coral border-2 border-border transform rotate-45"></div>
+              <div className="absolute -top-3 -left-3 w-6 h-6 bg-retro-yellow border-2 border-retro-charcoal transform rotate-45"></div>
+              <div className="absolute -bottom-3 -right-3 w-6 h-6 bg-retro-coral border-2 border-retro-charcoal transform rotate-45"></div>
             </div>
 
             <p className="text-lg md:text-xl text-text-muted max-w-2xl mx-auto mb-8">
@@ -131,56 +131,56 @@ export default function Home() {
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="card-blue text-text-light">
+              <div className="card-blue text-retro-cream">
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-retro-yellow border-4 border-border flex items-center justify-center flex-shrink-0 shadow-retro">
-                    <span className="text-2xl font-bold text-text-primary">1</span>
+                  <div className="w-12 h-12 bg-retro-yellow border-4 border-retro-charcoal flex items-center justify-center flex-shrink-0 shadow-retro">
+                    <span className="text-2xl font-bold text-retro-charcoal">1</span>
                   </div>
                   <div>
                     <h3 className="font-bold text-xl mb-2">PAY ENTRY FEE</h3>
-                    <p className="text-text-light">
+                    <p className="text-retro-cream">
                       Set your entry amount and select your favorite crypto token to trade (BTC, ETH, SOL, etc.)
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="card-coral text-text-light">
+              <div className="card-coral text-retro-cream">
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-retro-yellow border-4 border-border flex items-center justify-center flex-shrink-0 shadow-retro">
-                    <span className="text-2xl font-bold text-text-primary">2</span>
+                  <div className="w-12 h-12 bg-retro-yellow border-4 border-retro-charcoal flex items-center justify-center flex-shrink-0 shadow-retro">
+                    <span className="text-2xl font-bold text-retro-charcoal">2</span>
                   </div>
                   <div>
                     <h3 className="font-bold text-xl mb-2">GET MATCHED</h3>
-                    <p className="text-text-light">
+                    <p className="text-retro-cream">
                       Wait for an opponent or join an existing duel. Both players pay the same entry fee.
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="card-coral text-text-light">
+              <div className="card-coral text-retro-cream">
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-retro-yellow border-4 border-border flex items-center justify-center flex-shrink-0 shadow-retro">
-                    <span className="text-2xl font-bold text-text-primary">3</span>
+                  <div className="w-12 h-12 bg-retro-yellow border-4 border-retro-charcoal flex items-center justify-center flex-shrink-0 shadow-retro">
+                    <span className="text-2xl font-bold text-retro-charcoal">3</span>
                   </div>
                   <div>
                     <h3 className="font-bold text-xl mb-2">TRADE LIVE</h3>
-                    <p className="text-text-light">
+                    <p className="text-retro-cream">
                       Once the timer starts, buy and sell your chosen token. Watch real-time prices and your P&L.
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="card-blue text-text-light">
+              <div className="card-blue text-retro-cream">
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-retro-yellow border-4 border-border flex items-center justify-center flex-shrink-0 shadow-retro">
-                    <span className="text-2xl font-bold text-text-primary">4</span>
+                  <div className="w-12 h-12 bg-retro-yellow border-4 border-retro-charcoal flex items-center justify-center flex-shrink-0 shadow-retro">
+                    <span className="text-2xl font-bold text-retro-charcoal">4</span>
                   </div>
                   <div>
                     <h3 className="font-bold text-xl mb-2">WINNER TAKES ALL</h3>
-                    <p className="text-text-light">
+                    <p className="text-retro-cream">
                       Highest % gain wins! Prize is automatically sent to the winner's wallet.
                     </p>
                   </div>
@@ -227,19 +227,19 @@ export default function Home() {
               {/* Geometric Corner Accents */}
               <div className="absolute top-0 left-0 w-24 h-24 opacity-10">
                 <svg viewBox="0 0 100 100" className="w-full h-full">
-                  <polygon points="0,0 100,0 0,100" className="fill-border" />
+                  <polygon points="0,0 100,0 0,100" className="fill-retro-charcoal" />
                 </svg>
               </div>
               <div className="absolute bottom-0 right-0 w-24 h-24 opacity-10">
                 <svg viewBox="0 0 100 100" className="w-full h-full">
-                  <polygon points="100,100 0,100 100,0" className="fill-border" />
+                  <polygon points="100,100 0,100 100,0" className="fill-retro-charcoal" />
                 </svg>
               </div>
 
-              <h2 className="retro-heading text-4xl mb-4 text-text-light relative z-10" style={{textShadow: '4px 4px 0px rgba(44,44,44,0.5)'}}>
+              <h2 className="retro-heading text-4xl mb-4 text-retro-cream relative z-10" style={{textShadow: '4px 4px 0px rgba(44,44,44,0.5)'}}>
                 READY TO DUEL?
               </h2>
-              <p className="text-xl text-text-light mb-8 relative z-10">
+              <p className="text-xl text-retro-cream mb-8 relative z-10">
                 Connect your wallet and start trading battles now!
               </p>
               <Link href="/lobby" className="btn-primary text-xl inline-block relative z-10">

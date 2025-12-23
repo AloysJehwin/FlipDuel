@@ -80,19 +80,19 @@ export default function ResultsPage() {
                     <rect x="25" y="75" width="50" height="15" className="fill-retro-yellow" />
                   </svg>
                 </div>
-                <h1 className="retro-heading text-5xl md:text-7xl mb-4 text-text-light"
+                <h1 className="retro-heading text-5xl md:text-7xl mb-4 text-retro-cream"
                     style={{textShadow: '5px 5px 0px rgba(44,44,44,0.5)'}}>
                   VICTORY!
                 </h1>
                 <div className="card-retro inline-block px-6 py-2 mb-4">
-                  <div className="font-mono font-bold text-text-primary">{userWalletAddress}</div>
+                  <div className="font-mono font-bold text-retro-charcoal">{userWalletAddress}</div>
                 </div>
-                <p className="text-2xl text-text-light mb-6">
+                <p className="text-2xl text-retro-cream mb-6">
                   You won the duel!
                 </p>
                 <div className="card-retro bg-retro-yellow inline-block px-8 py-4">
                   <div className="text-sm text-text-muted uppercase mb-1">Prize Won</div>
-                  <div className="text-4xl font-display text-text-primary">
+                  <div className="text-4xl font-display text-retro-charcoal">
                     +{prizeAmount.toFixed(3)} ETH
                   </div>
                 </div>
@@ -101,22 +101,22 @@ export default function ResultsPage() {
               <div className="retro-frame bg-retro-coral p-12 animate-fadeIn">
                 <div className="w-20 h-20 mx-auto mb-4">
                   <svg viewBox="0 0 100 100" className="w-full h-full">
-                    <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="8" className="text-text-light" />
-                    <line x1="35" y1="35" x2="65" y2="65" stroke="currentColor" strokeWidth="8" className="text-text-light" />
-                    <line x1="65" y1="35" x2="35" y2="65" stroke="currentColor" strokeWidth="8" className="text-text-light" />
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="8" className="text-retro-cream" />
+                    <line x1="35" y1="35" x2="65" y2="65" stroke="currentColor" strokeWidth="8" className="text-retro-cream" />
+                    <line x1="65" y1="35" x2="35" y2="65" stroke="currentColor" strokeWidth="8" className="text-retro-cream" />
                   </svg>
                 </div>
-                <h1 className="retro-heading text-5xl md:text-7xl mb-4 text-text-light"
+                <h1 className="retro-heading text-5xl md:text-7xl mb-4 text-retro-cream"
                     style={{textShadow: '5px 5px 0px rgba(44,44,44,0.5)'}}>
                   DEFEAT
                 </h1>
                 <div className="card-retro inline-block px-6 py-2 mb-4">
-                  <div className="font-mono font-bold text-text-primary">{userWalletAddress}</div>
+                  <div className="font-mono font-bold text-retro-charcoal">{userWalletAddress}</div>
                 </div>
-                <p className="text-2xl text-text-light mb-6">
+                <p className="text-2xl text-retro-cream mb-6">
                   Better luck next time!
                 </p>
-                <div className="text-lg text-text-light">
+                <div className="text-lg text-retro-cream">
                   Keep practicing and you'll win soon
                 </div>
               </div>
@@ -136,24 +136,24 @@ export default function ResultsPage() {
                   <div className="retro-badge bg-retro-yellow mb-2">
                     WINNER
                   </div>
-                  <div className="font-mono text-lg font-bold text-text-primary mb-1">
+                  <div className="font-mono text-lg font-bold text-retro-charcoal mb-1">
                     {winner.address}
                   </div>
                   {isWinner && (
-                    <div className="text-xs text-text-primary uppercase font-bold">
+                    <div className="text-xs text-retro-charcoal uppercase font-bold">
                       ★ This is you ★
                     </div>
                   )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="bg-surface/80 border-[3px] border-border p-3">
+                  <div className="bg-surface/80 border-[3px] border-retro-charcoal p-3">
                     <div className="text-xs text-text-muted uppercase">Starting</div>
-                    <div className="font-bold text-text-primary">
+                    <div className="font-bold text-retro-charcoal">
                       {winner.startingBalance.toFixed(3)} ETH
                     </div>
                   </div>
-                  <div className="bg-surface/80 border-[3px] border-border p-3">
+                  <div className="bg-surface/80 border-[3px] border-retro-charcoal p-3">
                     <div className="text-xs text-text-muted uppercase">Final</div>
                     <div className="font-bold text-retro-blue">
                       {winner.finalBalance.toFixed(3)} ETH
@@ -161,9 +161,9 @@ export default function ResultsPage() {
                   </div>
                 </div>
 
-                <div className="bg-retro-yellow border-[3px] border-border p-4 shadow-retro-inset">
+                <div className="bg-retro-yellow border-[3px] border-retro-charcoal p-4 shadow-retro-inset">
                   <div className="text-xs text-text-muted uppercase mb-1">Total P&L</div>
-                  <div className="text-3xl font-display text-text-primary">
+                  <div className="text-3xl font-display text-retro-charcoal">
                     +{winner.pnlPercent.toFixed(2)}%
                   </div>
                   <div className="text-sm font-bold text-retro-green">
@@ -178,24 +178,24 @@ export default function ResultsPage() {
                   <div className="retro-badge bg-surface mb-2">
                     2ND PLACE
                   </div>
-                  <div className="font-mono text-lg font-bold text-text-light mb-1">
+                  <div className="font-mono text-lg font-bold text-retro-cream mb-1">
                     {loser.address}
                   </div>
                   {!isWinner && (
-                    <div className="text-xs text-text-light uppercase font-bold">
+                    <div className="text-xs text-retro-cream uppercase font-bold">
                       ★ This is you ★
                     </div>
                   )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="bg-surface/80 border-[3px] border-border p-3">
+                  <div className="bg-surface/80 border-[3px] border-retro-charcoal p-3">
                     <div className="text-xs text-text-muted uppercase">Starting</div>
-                    <div className="font-bold text-text-primary">
+                    <div className="font-bold text-retro-charcoal">
                       {loser.startingBalance.toFixed(3)} ETH
                     </div>
                   </div>
-                  <div className="bg-surface/80 border-[3px] border-border p-3">
+                  <div className="bg-surface/80 border-[3px] border-retro-charcoal p-3">
                     <div className="text-xs text-text-muted uppercase">Final</div>
                     <div className="font-bold text-retro-blue">
                       {loser.finalBalance.toFixed(3)} ETH
@@ -203,9 +203,9 @@ export default function ResultsPage() {
                   </div>
                 </div>
 
-                <div className="bg-surface border-[3px] border-border p-4 shadow-retro-inset">
+                <div className="bg-surface border-[3px] border-retro-charcoal p-4 shadow-retro-inset">
                   <div className="text-xs text-text-muted uppercase mb-1">Total P&L</div>
-                  <div className="text-3xl font-display text-text-primary">
+                  <div className="text-3xl font-display text-retro-charcoal">
                     {loser.pnlPercent.toFixed(2)}%
                   </div>
                   <div className="text-sm font-bold text-retro-coral">
@@ -224,7 +224,7 @@ export default function ResultsPage() {
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b-4 border-border">
+                    <tr className="border-b-4 border-retro-charcoal">
                       <th className="text-left py-3 px-4 retro-subheading text-sm">Type</th>
                       <th className="text-left py-3 px-4 retro-subheading text-sm">Amount</th>
                       <th className="text-left py-3 px-4 retro-subheading text-sm">Price</th>
@@ -234,7 +234,7 @@ export default function ResultsPage() {
                   </thead>
                   <tbody>
                     {myStats.trades.map((trade, idx) => (
-                      <tr key={idx} className="border-b-2 border-border/20">
+                      <tr key={idx} className="border-b-2 border-retro-charcoal/20">
                         <td className="py-3 px-4">
                           <span className={`retro-badge ${
                             trade.type === 'BUY' ? 'bg-retro-green' : 'bg-retro-coral'
@@ -258,7 +258,7 @@ export default function ResultsPage() {
                 </table>
               </div>
 
-              <div className="mt-4 pt-4 border-t-4 border-border flex justify-between items-center">
+              <div className="mt-4 pt-4 border-t-4 border-retro-charcoal flex justify-between items-center">
                 <span className="retro-subheading">TOTAL</span>
                 <span className={`text-2xl font-display ${
                   myStats.totalPnl >= 0 ? 'text-retro-green' : 'text-retro-coral'

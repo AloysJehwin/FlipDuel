@@ -124,7 +124,7 @@ export default function LobbyPage() {
 
           {/* Filters */}
           <div className="mb-8">
-            <div className="card bg-win95-light p-4">
+            <div className="card bg-retro-beige p-4">
               <div className="flex flex-col md:flex-row gap-4">
                 {/* Status Filter */}
                 <div className="flex-1">
@@ -134,30 +134,30 @@ export default function LobbyPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => setFilter('waiting')}
-                      className={`px-4 py-2 border-[3px] border-border font-bold text-sm uppercase transition-all ${
+                      className={`px-4 py-2 border-[3px] border-retro-charcoal font-bold text-sm uppercase transition-all ${
                         filter === 'waiting'
-                          ? 'bg-retro-coral text-text-light shadow-retro'
-                          : 'bg-surface text-text-primary hover:bg-retro-tan'
+                          ? 'bg-retro-coral text-retro-cream shadow-retro'
+                          : 'bg-surface text-retro-charcoal hover:bg-retro-tan'
                       }`}
                     >
                       Waiting
                     </button>
                     <button
                       onClick={() => setFilter('active')}
-                      className={`px-4 py-2 border-[3px] border-border font-bold text-sm uppercase transition-all ${
+                      className={`px-4 py-2 border-[3px] border-retro-charcoal font-bold text-sm uppercase transition-all ${
                         filter === 'active'
-                          ? 'bg-retro-coral text-text-light shadow-retro'
-                          : 'bg-surface text-text-primary hover:bg-retro-tan'
+                          ? 'bg-retro-coral text-retro-cream shadow-retro'
+                          : 'bg-surface text-retro-charcoal hover:bg-retro-tan'
                       }`}
                     >
                       Active
                     </button>
                     <button
                       onClick={() => setFilter('all')}
-                      className={`px-4 py-2 border-[3px] border-border font-bold text-sm uppercase transition-all ${
+                      className={`px-4 py-2 border-[3px] border-retro-charcoal font-bold text-sm uppercase transition-all ${
                         filter === 'all'
-                          ? 'bg-retro-coral text-text-light shadow-retro'
-                          : 'bg-surface text-text-primary hover:bg-retro-tan'
+                          ? 'bg-retro-coral text-retro-cream shadow-retro'
+                          : 'bg-surface text-retro-charcoal hover:bg-retro-tan'
                       }`}
                     >
                       All
@@ -173,40 +173,40 @@ export default function LobbyPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => setSelectedToken('all')}
-                      className={`px-4 py-2 border-[3px] border-border font-bold text-sm uppercase transition-all ${
+                      className={`px-4 py-2 border-[3px] border-retro-charcoal font-bold text-sm uppercase transition-all ${
                         selectedToken === 'all'
-                          ? 'bg-retro-blue text-text-light shadow-retro'
-                          : 'bg-surface text-text-primary hover:bg-retro-tan'
+                          ? 'bg-retro-blue text-retro-cream shadow-retro'
+                          : 'bg-surface text-retro-charcoal hover:bg-retro-tan'
                       }`}
                     >
                       All
                     </button>
                     <button
                       onClick={() => setSelectedToken('ETH')}
-                      className={`px-4 py-2 border-[3px] border-border font-bold text-sm uppercase transition-all ${
+                      className={`px-4 py-2 border-[3px] border-retro-charcoal font-bold text-sm uppercase transition-all ${
                         selectedToken === 'ETH'
-                          ? 'bg-retro-blue text-text-light shadow-retro'
-                          : 'bg-surface text-text-primary hover:bg-retro-tan'
+                          ? 'bg-retro-blue text-retro-cream shadow-retro'
+                          : 'bg-surface text-retro-charcoal hover:bg-retro-tan'
                       }`}
                     >
                       ETH
                     </button>
                     <button
                       onClick={() => setSelectedToken('BTC')}
-                      className={`px-4 py-2 border-[3px] border-border font-bold text-sm uppercase transition-all ${
+                      className={`px-4 py-2 border-[3px] border-retro-charcoal font-bold text-sm uppercase transition-all ${
                         selectedToken === 'BTC'
-                          ? 'bg-retro-blue text-text-light shadow-retro'
-                          : 'bg-surface text-text-primary hover:bg-retro-tan'
+                          ? 'bg-retro-blue text-retro-cream shadow-retro'
+                          : 'bg-surface text-retro-charcoal hover:bg-retro-tan'
                       }`}
                     >
                       BTC
                     </button>
                     <button
                       onClick={() => setSelectedToken('SOL')}
-                      className={`px-4 py-2 border-[3px] border-border font-bold text-sm uppercase transition-all ${
+                      className={`px-4 py-2 border-[3px] border-retro-charcoal font-bold text-sm uppercase transition-all ${
                         selectedToken === 'SOL'
-                          ? 'bg-retro-blue text-text-light shadow-retro'
-                          : 'bg-surface text-text-primary hover:bg-retro-tan'
+                          ? 'bg-retro-blue text-retro-cream shadow-retro'
+                          : 'bg-surface text-retro-charcoal hover:bg-retro-tan'
                       }`}
                     >
                       SOL
@@ -239,7 +239,7 @@ export default function LobbyPage() {
                 <div className="space-y-3 mb-4">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-text-muted uppercase">Creator</span>
-                    <span className="font-mono font-bold text-text-primary">
+                    <span className="font-mono font-bold text-retro-charcoal">
                       {duel.creator}
                     </span>
                   </div>
@@ -253,23 +253,23 @@ export default function LobbyPage() {
 
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-text-muted uppercase">Token</span>
-                    <span className="retro-badge bg-retro-blue text-text-light">
+                    <span className="retro-badge bg-retro-blue text-retro-cream">
                       {duel.token}
                     </span>
                   </div>
 
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-text-muted uppercase">Duration</span>
-                    <span className="font-bold text-text-primary">
+                    <span className="font-bold text-retro-charcoal">
                       {duel.duration} min
                     </span>
                   </div>
                 </div>
 
                 {/* Prize Pool */}
-                <div className="bg-retro-yellow border-[3px] border-border p-3 mb-4 shadow-retro-inset">
+                <div className="bg-retro-yellow border-[3px] border-retro-charcoal p-3 mb-4 shadow-retro-inset">
                   <div className="text-xs text-text-muted uppercase mb-1">Prize Pool</div>
-                  <div className="text-xl font-display text-text-primary">
+                  <div className="text-xl font-display text-retro-charcoal">
                     {(duel.entryFee * 2).toFixed(2)} ETH
                   </div>
                 </div>
@@ -300,9 +300,9 @@ export default function LobbyPage() {
               <div className="retro-frame inline-block p-8">
                 <div className="w-24 h-24 mx-auto mb-4 opacity-30">
                   <svg viewBox="0 0 100 100" className="w-full h-full">
-                    <rect x="20" y="30" width="60" height="40" rx="5" className="fill-none stroke-border" strokeWidth="4" />
-                    <circle cx="40" cy="50" r="8" className="fill-border" />
-                    <circle cx="60" cy="50" r="8" className="fill-border" />
+                    <rect x="20" y="30" width="60" height="40" rx="5" className="fill-none stroke-retro-charcoal" strokeWidth="4" />
+                    <circle cx="40" cy="50" r="8" className="fill-retro-charcoal" />
+                    <circle cx="60" cy="50" r="8" className="fill-retro-charcoal" />
                   </svg>
                 </div>
                 <h3 className="retro-heading text-2xl mb-2">NO DUELS FOUND</h3>
