@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Press+Start+2P&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Press+Start+2P&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -8,13 +8,14 @@
   * {
     @apply border-border;
   }
-  
+
   body {
     @apply bg-primary-bg text-text-primary antialiased;
     font-family: 'Inter', system-ui, sans-serif;
+    background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%232C2C2C' fill-opacity='0.03' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/svg%3E");
   }
 
-  /* Subtle CRT scanline effect */
+  /* Retro texture overlay */
   body::before {
     content: '';
     position: fixed;
@@ -22,67 +23,104 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(
-      rgba(18, 16, 16, 0) 50%,
-      rgba(0, 0, 0, 0.15) 50%
-    );
-    background-size: 100% 4px;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
     z-index: 9999;
     pointer-events: none;
-    opacity: 0.05;
+    opacity: 0.5;
   }
 }
 
 @layer components {
+  /* Retro Button Styles */
   .btn-primary {
-    @apply px-6 py-3 bg-surface border-2 border-neon-green text-neon-green font-semibold rounded-lg transition-all duration-300 hover:bg-neon-green hover:text-primary-bg hover:shadow-neon-green;
+    @apply px-6 py-3 bg-retro-coral text-text-light font-bold uppercase tracking-wide shadow-retro border-[3px] border-retro-charcoal hover:bg-retro-coral/90 active:shadow-retro-inset transition-all;
   }
 
   .btn-secondary {
-    @apply px-4 py-2 bg-surface-light border border-border text-text-primary font-medium rounded-lg transition-all duration-200 hover:border-neon-green hover:text-neon-green;
+    @apply px-6 py-3 bg-retro-blue text-text-light font-bold uppercase tracking-wide shadow-retro border-[3px] border-retro-charcoal hover:bg-retro-blue/90 active:shadow-retro-inset transition-all;
   }
 
+  .btn-success {
+    @apply px-6 py-3 bg-retro-green text-text-light font-bold uppercase tracking-wide shadow-retro border-[3px] border-retro-charcoal hover:bg-retro-green/90 active:shadow-retro-inset transition-all;
+  }
+
+  .btn-outline {
+    @apply px-6 py-3 bg-transparent text-retro-charcoal font-bold uppercase tracking-wide shadow-retro border-[3px] border-retro-charcoal hover:bg-retro-beige active:shadow-retro-inset transition-all;
+  }
+
+  /* Retro Card Styles */
   .card {
-    @apply bg-surface border border-border rounded-xl p-6 transition-all duration-300;
+    @apply bg-surface shadow-retro border-[3px] border-retro-charcoal p-6;
   }
 
-  .card-hover {
-    @apply hover:border-neon-green/50 hover:shadow-glow-sm;
+  .card-retro {
+    @apply bg-surface shadow-retro border-[3px] border-retro-charcoal p-6;
   }
 
-  .neon-text {
-    @apply text-neon-green;
-    text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+  .card-blue {
+    @apply bg-retro-blue shadow-retro border-[3px] border-retro-charcoal p-6 text-text-light;
   }
 
-  .arcade-text {
-    @apply font-arcade text-neon-green;
-    text-shadow: 0 0 10px rgba(34, 197, 94, 0.8);
+  .card-coral {
+    @apply bg-retro-coral shadow-retro border-[3px] border-retro-charcoal p-6 text-text-light;
   }
 
-  .glass-effect {
-    @apply bg-surface/50 backdrop-blur-md border border-border/50;
+  /* Retro Text Styles */
+  .retro-heading {
+    @apply font-display text-retro-charcoal uppercase tracking-tight;
   }
 
-  .scrollbar-custom::-webkit-scrollbar {
-    width: 6px;
+  .retro-subheading {
+    @apply font-bold text-retro-charcoal uppercase tracking-wide;
   }
 
-  .scrollbar-custom::-webkit-scrollbar-track {
-    @apply bg-surface;
+  .pixel-text {
+    @apply font-retro text-retro-charcoal;
+    image-rendering: pixelated;
   }
 
-  .scrollbar-custom::-webkit-scrollbar-thumb {
-    @apply bg-surface-light rounded-full;
+  /* Retro Frame/Border */
+  .retro-frame {
+    @apply bg-surface p-4 shadow-retro border-[3px] border-retro-charcoal;
   }
 
-  .scrollbar-custom::-webkit-scrollbar-thumb:hover {
-    @apply bg-neon-green/30;
+  /* Retro Badge */
+  .retro-badge {
+    @apply inline-block px-3 py-1 bg-retro-yellow text-retro-charcoal font-bold text-sm uppercase shadow-retro border-2 border-retro-charcoal;
+  }
+
+  /* Scrollbar */
+  .scrollbar-retro::-webkit-scrollbar {
+    width: 12px;
+  }
+
+  .scrollbar-retro::-webkit-scrollbar-track {
+    @apply bg-retro-beige border-2 border-retro-charcoal;
+  }
+
+  .scrollbar-retro::-webkit-scrollbar-thumb {
+    @apply bg-retro-coral border-2 border-retro-charcoal;
+  }
+
+  .scrollbar-retro::-webkit-scrollbar-thumb:hover {
+    @apply bg-retro-coral/80;
+  }
+
+  /* Vintage paper effect */
+  .paper-texture {
+    background-color: #F5F1E8;
+    background-image:
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='3' numOctaves='4' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E");
   }
 }
 
 @layer utilities {
-  .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-neon-green via-neon-cyan to-neon-purple;
+  .text-gradient-retro {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-retro-coral via-retro-blue to-retro-purple;
+  }
+
+  .bg-retro-pattern {
+    background-image:
+      repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(44,44,44,.05) 35px, rgba(44,44,44,.05) 70px);
   }
 }
