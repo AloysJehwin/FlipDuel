@@ -34,3 +34,11 @@ fix_all_errors.sh
 # OS files
 .DS_Store
 Thumbs.db
+
+#Test transactions files
+deploy_and_wire_contracts.sh
+run_simulation_now.sh
+simulate_full_duel.sh
+simulation_errors.log
+simulation_errors.log
+simulation_success.log
