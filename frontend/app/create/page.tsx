@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
+import { useWallet } from '@/contexts/WalletContext'
+import { createDuel } from '@/lib/duel-api'
 
 const TRADING_TOKENS = ['ETH', 'BTC', 'SOL', 'MATIC', 'AVAX', 'NFT-Dragons', 'NFT-Apes', 'NFT-Punks']
 const DURATIONS = [5, 10, 15, 20, 30, 60]
@@ -10,24 +12,48 @@ const ENTRY_PRESETS = [10, 50, 100, 250, 500, 1000]
 
 export default function CreateDuelPage() {
   const router = useRouter()
+  const { walletAddress, walletBalance } = useWallet()
   const [entryFee, setEntryFee] = useState(100) // Entry fee in CSPR
   const [customEntry, setCustomEntry] = useState('')
   const [selectedToken, setSelectedToken] = useState('ETH') // Token to trade during duel
   const [duration, setDuration] = useState(15)
   const [isPrivate, setIsPrivate] = useState(false)
-  const [walletBalance] = useState(2450) // Mock wallet balance in CSPR
+  const [isCreating, setIsCreating] = useState(false)
 
-  const handleCreateDuel = () => {
-    // TODO: Connect to smart contract and create duel
-    console.log('Creating duel:', {
-      entryFee,
-      selectedToken,
-      duration,
-      isPrivate,
-    })
+  const handleCreateDuel = async () => {
+    if (!walletAddress) {
+      alert('Please connect your wallet first!')
+      return
+    }
 
-    // Redirect to lobby or duel page
-    router.push('/lobby')
+    if (Number(walletBalance) < entryFee) {
+      alert(`Insufficient balance! You need ${entryFee} CSPR to create this duel.`)
+      return
+    }
+
+    setIsCreating(true)
+
+    try {
+      const duel = await createDuel(
+        walletAddress,
+        entryFee,
+        selectedToken,
+        duration
+      )
+
+      if (duel) {
+        console.log('✅ Duel created:', duel)
+        // Redirect to the created duel page
+        router.push(`/duel/${duel.id}`)
+      } else {
+        throw new Error('Failed to create duel')
+      }
+    } catch (error: any) {
+      console.error('❌ Error creating duel:', error)
+      alert(error.message || 'Failed to create duel. Please try again.')
+    } finally {
+      setIsCreating(false)
+    }
   }
 
   const potentialWinnings = entryFee * 2
@@ -257,13 +283,19 @@ export default function CreateDuelPage() {
 
                   <button
                     onClick={handleCreateDuel}
-                    disabled={entryFee <= 0 || entryFee > walletBalance}
+                    disabled={isCreating || entryFee <= 0 || !walletAddress || Number(walletBalance) < entryFee}
                     className="btn-primary w-full text-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    CREATE DUEL
+                    {isCreating ? 'CREATING DUEL...' : 'CREATE DUEL'}
                   </button>
 
-                  {entryFee > walletBalance && (
+                  {!walletAddress && (
+                    <div className="mt-3 text-xs text-retro-cherry font-bold text-center">
+                      Please connect your wallet first
+                    </div>
+                  )}
+
+                  {walletAddress && Number(walletBalance) < entryFee && (
                     <div className="mt-3 text-xs text-retro-cherry font-bold text-center">
                       Insufficient balance
                     </div>

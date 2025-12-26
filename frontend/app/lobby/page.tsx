@@ -1,72 +1,73 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
+import { getAllDuels } from '@/lib/duel-api'
+import type { Duel as SupabaseDuel } from '@/lib/supabase'
 
 interface Duel {
   id: string
   creator: string
-  entryFee: number // Entry fee in CSPR
-  tradingToken: string // Token that will be traded during the duel (NFT or crypto)
+  entryFee: number
+  tradingToken: string
   duration: number
-  status: 'waiting' | 'active'
+  status: 'waiting' | 'active' | 'completed'
   createdAt: string
+  prizePool: number
 }
 
-const MOCK_DUELS: Duel[] = [
-  {
-    id: '1',
-    creator: '0x7a3f...9d2c',
-    entryFee: 100,
-    tradingToken: 'ETH',
-    duration: 15,
-    status: 'waiting',
-    createdAt: '2 min ago'
-  },
-  {
-    id: '2',
-    creator: '0x4b8e...1a5f',
-    entryFee: 50,
-    tradingToken: 'BTC',
-    duration: 30,
-    status: 'waiting',
-    createdAt: '5 min ago'
-  },
-  {
-    id: '3',
-    creator: '0x9c2d...7e4b',
-    entryFee: 200,
-    tradingToken: 'NFT-Dragons',
-    duration: 10,
-    status: 'waiting',
-    createdAt: '8 min ago'
-  },
-  {
-    id: '4',
-    creator: '0x1f6a...3c9e',
-    entryFee: 150,
-    tradingToken: 'SOL',
-    duration: 20,
-    status: 'waiting',
-    createdAt: '12 min ago'
-  },
-  {
-    id: '5',
-    creator: '0x5d3b...8f2a',
-    entryFee: 500,
-    tradingToken: 'NFT-Apes',
-    duration: 15,
-    status: 'active',
-    createdAt: '1 min ago'
-  },
-]
-
 export default function LobbyPage() {
+  const [duels, setDuels] = useState<Duel[]>([])
+  const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'waiting' | 'active'>('waiting')
   const [selectedToken, setSelectedToken] = useState<string>('all')
 
-  const filteredDuels = MOCK_DUELS.filter(duel => {
+  // Load duels from Supabase
+  useEffect(() => {
+    loadDuels()
+  }, [])
+
+  const loadDuels = async () => {
+    setLoading(true)
+    try {
+      const data = await getAllDuels()
+
+      // Transform Supabase data to component format
+      const transformedDuels: Duel[] = data.map((duel: SupabaseDuel) => ({
+        id: duel.id,
+        creator: duel.creator_address,
+        entryFee: Number(duel.entry_fee),
+        tradingToken: duel.trading_token,
+        duration: duel.duration,
+        status: duel.status as 'waiting' | 'active' | 'completed',
+        createdAt: formatTimeAgo(duel.created_at),
+        prizePool: Number(duel.prize_pool)
+      }))
+
+      setDuels(transformedDuels)
+    } catch (error) {
+      console.error('Error loading duels:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const formatTimeAgo = (timestamp: string): string => {
+    const now = new Date()
+    const created = new Date(timestamp)
+    const diffMs = now.getTime() - created.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+
+    if (diffMins < 1) return 'just now'
+    if (diffMins < 60) return `${diffMins} min ago`
+    const diffHours = Math.floor(diffMins / 60)
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
+    const diffDays = Math.floor(diffHours / 24)
+    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
+  }
+
+  const filteredDuels = duels.filter(duel => {
     if (filter !== 'all' && duel.status !== filter) return false
     if (selectedToken !== 'all' && duel.tradingToken !== selectedToken) return false
     return true
@@ -100,23 +101,27 @@ export default function LobbyPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                 <div>
                   <div className="text-2xl font-bold text-retro-cherry">
-                    {MOCK_DUELS.filter(d => d.status === 'waiting').length}
+                    {duels.filter(d => d.status === 'waiting').length}
                   </div>
                   <div className="text-sm text-text-muted uppercase">Open Duels</div>
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-retro-cherry-light">
-                    {MOCK_DUELS.filter(d => d.status === 'active').length}
+                    {duels.filter(d => d.status === 'active').length}
                   </div>
                   <div className="text-sm text-text-muted uppercase">Active Now</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-accent-light-gray">247</div>
-                  <div className="text-sm text-text-muted uppercase">Online</div>
+                  <div className="text-2xl font-bold text-accent-light-gray">
+                    {duels.length}
+                  </div>
+                  <div className="text-sm text-text-muted uppercase">Total Duels</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-retro-cherry">$12.4K</div>
-                  <div className="text-sm text-text-muted uppercase">Prize Pool</div>
+                  <div className="text-2xl font-bold text-retro-cherry">
+                    {duels.reduce((sum, d) => sum + d.prizePool, 0).toFixed(0)} CSPR
+                  </div>
+                  <div className="text-sm text-text-muted uppercase">Total Prize Pool</div>
                 </div>
               </div>
             </div>
@@ -237,9 +242,18 @@ export default function LobbyPage() {
             </div>
           </div>
 
+          {/* Loading State */}
+          {loading && (
+            <div className="text-center py-16">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-retro-cherry"></div>
+              <p className="mt-4 text-text-muted">Loading duels...</p>
+            </div>
+          )}
+
           {/* Duels Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredDuels.map((duel) => (
+          {!loading && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredDuels.map((duel) => (
               <div key={duel.id} className="card-retro hover:scale-105 transition-transform">
                 {/* Status Badge */}
                 <div className="mb-4 flex justify-between items-start">
@@ -311,11 +325,12 @@ export default function LobbyPage() {
                   </Link>
                 )}
               </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           {/* Empty State */}
-          {filteredDuels.length === 0 && (
+          {!loading && filteredDuels.length === 0 && (
             <div className="text-center py-16">
               <div className="retro-frame inline-block p-8">
                 <div className="w-24 h-24 mx-auto mb-4 opacity-30">
