@@ -42,3 +42,14 @@ simulate_full_duel.sh
 simulation_errors.log
 simulation_errors.log
 simulation_success.log
+complete_simulation.log
+run_simulation.js
+run_complete_simulation.js
+run_tests.sh
+run_staking_simulation.js
+staking_simulation_log.json
+run_tests.sh
+
+
+#wasm files
+proxy_caller.wasm

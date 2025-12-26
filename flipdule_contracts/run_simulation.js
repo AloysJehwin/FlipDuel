@@ -6,13 +6,14 @@ const fs = require('fs');
 // Configuration
 const NODE = "https://node.testnet.casper.network/rpc";
 const CHAIN = "casper-test";
-const PAYMENT = "5000000000";
+const PAYMENT = "10000000000"; // 10 CSPR for cross-contract calls
 const ENTRY = "10000000000";
 const TOLERANCE = "5";
 
 const ORACLE_HASH = "012d314536f0869cc092118f803026bd1fede02554e89614a2432ffd2f8a06c4";
 const ENGINE_HASH = "365d058d996b4f41cc82c293763059a7353f41a06b0c2d2f008d08df0bf80899";
-const MANAGER_HASH = "45644e6e5c962c9bf388770ff84246b4b3f6e4c04d6984f1ba153ab66a5dee21";
+const MANAGER_HASH = "a5464b2ef585b4dd279c3208025b5836475febf12563f1535a1153ec69c36d5b"; // FlipDuelManager v6
+const LIQUID_STAKE_HASH = "0308564d41084ee831e9df42caa3e1f03237d50e71e7c84bdec0c0c536e63f9f"; // LiquidStake v7
 
 const USER1 = "user1_secret_key.pem";
 const USER2 = "user2_secret_key.pem";
@@ -112,7 +113,7 @@ async function main() {
 
         let txHash = await executeCommand(
             "Set Oracle in Engine",
-            `casper-client put-deploy --node-address "${NODE}" --chain-name "${CHAIN}" --secret-key "${ADMIN}" --payment-amount "${PAYMENT}" --session-package-hash "${ENGINE_HASH}" --session-entry-point "set_price_oracle" --session-arg "price_oracle_addr:key='hash-${ORACLE_HASH}'"`
+            `casper-client put-transaction package --node-address "${NODE}" --chain-name "${CHAIN}" --secret-key "${ADMIN}" --payment-amount "${PAYMENT}" --gas-price-tolerance 1 --standard-payment true --package-address "package-${ENGINE_HASH}" --session-entry-point "set_price_oracle" --session-arg "price_oracle_addr:key='hash-${ORACLE_HASH}'"`
         );
         await sleep(15000);
         await checkTransactionError(txHash, "Set Oracle in Engine");
@@ -120,7 +121,7 @@ async function main() {
 
         txHash = await executeCommand(
             "Set Manager in Engine",
-            `casper-client put-deploy --node-address "${NODE}" --chain-name "${CHAIN}" --secret-key "${ADMIN}" --payment-amount "${PAYMENT}" --session-package-hash "${ENGINE_HASH}" --session-entry-point "set_duel_manager" --session-arg "duel_manager_addr:key='hash-${MANAGER_HASH}'"`
+            `casper-client put-transaction package --node-address "${NODE}" --chain-name "${CHAIN}" --secret-key "${ADMIN}" --payment-amount "${PAYMENT}" --gas-price-tolerance 1 --standard-payment true --package-address "package-${ENGINE_HASH}" --session-entry-point "set_duel_manager" --session-arg "duel_manager_addr:key='hash-${MANAGER_HASH}'"`
         );
         await sleep(15000);
         await checkTransactionError(txHash, "Set Manager in Engine");
@@ -128,10 +129,26 @@ async function main() {
 
         txHash = await executeCommand(
             "Set Engine in Manager",
-            `casper-client put-deploy --node-address "${NODE}" --chain-name "${CHAIN}" --secret-key "${ADMIN}" --payment-amount "${PAYMENT}" --session-package-hash "${MANAGER_HASH}" --session-entry-point "set_trading_engine" --session-arg "trading_engine_addr:key='hash-${ENGINE_HASH}'"`
+            `casper-client put-transaction package --node-address "${NODE}" --chain-name "${CHAIN}" --secret-key "${ADMIN}" --payment-amount "${PAYMENT}" --gas-price-tolerance 1 --standard-payment true --package-address "package-${MANAGER_HASH}" --session-entry-point "set_trading_engine" --session-arg "trading_engine_addr:key='hash-${ENGINE_HASH}'"`
         );
         await sleep(15000);
         await checkTransactionError(txHash, "Set Engine in Manager");
+        await sleep(15000);
+
+        txHash = await executeCommand(
+            "Set Staking Contract in Manager",
+            `casper-client put-transaction package --node-address "${NODE}" --chain-name "${CHAIN}" --secret-key "${ADMIN}" --payment-amount "${PAYMENT}" --gas-price-tolerance 1 --standard-payment true --package-address "package-${MANAGER_HASH}" --session-entry-point "set_staking_contract" --session-arg "staking_contract_addr:key='hash-${LIQUID_STAKE_HASH}'"`
+        );
+        await sleep(15000);
+        await checkTransactionError(txHash, "Set Staking Contract");
+        await sleep(15000);
+
+        txHash = await executeCommand(
+            "Set Validator in Manager",
+            `casper-client put-transaction package --node-address "${NODE}" --chain-name "${CHAIN}" --secret-key "${ADMIN}" --payment-amount "${PAYMENT}" --gas-price-tolerance 1 --standard-payment true --package-address "package-${MANAGER_HASH}" --session-entry-point "set_validator" --session-arg "validator:public_key='017d96b9a63abcb61c870a4f55187a0a7ac24096bdb5fc585c12a686a4d892009e'"`
+        );
+        await sleep(15000);
+        await checkTransactionError(txHash, "Set Default Validator");
         await sleep(15000);
 
         // Step 2: Set NFT prices
@@ -139,52 +156,52 @@ async function main() {
 
         txHash = await executeCommand(
             "Set NFT1 price to 5 CSPR",
-            `casper-client put-deploy --node-address "${NODE}" --chain-name "${CHAIN}" --secret-key "${ADMIN}" --payment-amount "${PAYMENT}" --session-package-hash "${ORACLE_HASH}" --session-entry-point "update_price" --session-arg "nft_id:string='NFT1'" --session-arg "price:u512='5000000000'" --session-arg "source:string='manual'"`
+            `casper-client put-transaction package --node-address "${NODE}" --chain-name "${CHAIN}" --secret-key "${ADMIN}" --payment-amount "${PAYMENT}" --gas-price-tolerance 1 --standard-payment true --package-address "package-${ORACLE_HASH}" --session-entry-point "update_price" --session-arg "nft_id:string='NFT1'" --session-arg "price:u512='5000000000'" --session-arg "source:string='manual'"`
         );
         await sleep(15000);
         await checkTransactionError(txHash, "Set NFT1 price");
         await sleep(15000);
 
         // Step 3: User 1 creates duel
-        console.log('\x1b[36m\n📋 Step 3: User 1 creating duel (10 CSPR entry)...\x1b[0m\n');
+        console.log('\x1b[36m\n📋 Step 3: User 1 creating duel (10 CSPR entry staked in LiquidStake)...\x1b[0m\n');
 
         txHash = await executeCommand(
             "User 1 creates duel",
-            `casper-client put-transaction invocable-entity --node-address "${NODE}" --chain-name "${CHAIN}" --secret-key "${USER1}" --payment-amount "${PAYMENT}" --transferred-value "${ENTRY}" --entity-address "package-${MANAGER_HASH}" --session-entry-point "create_duel" --session-arg "duration_seconds:u64='600'" --session-arg "nft_collection:string='NFT_COLLECTION_1'" --session-arg "max_participants:u8='2'" --gas-price-tolerance "${TOLERANCE}" --standard-payment true`
+            `casper-client put-transaction package --node-address "${NODE}" --chain-name "${CHAIN}" --secret-key "${USER1}" --payment-amount "${PAYMENT}" --gas-price-tolerance 1 --standard-payment true --package-address "package-${MANAGER_HASH}" --session-entry-point "create_duel" --session-arg "duration_seconds:u64='600'" --session-arg "nft_collection:string='NFT_COLLECTION_1'" --session-arg "max_participants:u8='2'" --session-arg "entry_fee:u512='${ENTRY}'"`
         );
         await sleep(20000);
         await checkTransactionError(txHash, "User 1 creates duel");
         await sleep(25000);
 
         // Step 4: User 2 joins duel
-        console.log('\x1b[36m\n📋 Step 4: User 2 joining duel (10 CSPR entry)...\x1b[0m\n');
+        console.log('\x1b[36m\n📋 Step 4: User 2 joining duel (10 CSPR entry staked in LiquidStake)...\x1b[0m\n');
 
         txHash = await executeCommand(
             "User 2 joins duel",
-            `casper-client put-transaction invocable-entity --node-address "${NODE}" --chain-name "${CHAIN}" --secret-key "${USER2}" --payment-amount "${PAYMENT}" --transferred-value "${ENTRY}" --entity-address "package-${MANAGER_HASH}" --session-entry-point "join_duel" --session-arg "duel_id:u64='1'" --gas-price-tolerance "${TOLERANCE}" --standard-payment true`
+            `casper-client put-transaction package --node-address "${NODE}" --chain-name "${CHAIN}" --secret-key "${USER2}" --payment-amount "${PAYMENT}" --gas-price-tolerance 1 --standard-payment true --package-address "package-${MANAGER_HASH}" --session-entry-point "join_duel" --session-arg "duel_id:u64='0'"`
         );
-        console.log('\x1b[32m💰 Prize Pool: 20 CSPR (duel auto-started)\x1b[0m');
+        console.log('\x1b[32m💰 Prize Pool: 20 CSPR staked in LiquidStake (duel auto-started)\x1b[0m');
         await sleep(20000);
         await checkTransactionError(txHash, "User 2 joins duel");
         await sleep(25000);
 
         // Step 5: Close duel
-        console.log('\x1b[36m\n📋 Step 5: Closing duel...\x1b[0m\n');
+        console.log('\x1b[36m\n📋 Step 5: Closing duel and unstaking CSPR...\x1b[0m\n');
 
         txHash = await executeCommand(
             "Close duel",
-            `casper-client put-transaction invocable-entity --node-address "${NODE}" --chain-name "${CHAIN}" --secret-key "${ADMIN}" --payment-amount "${PAYMENT}" --entity-address "package-${MANAGER_HASH}" --session-entry-point "close_duel" --session-arg "duel_id:u64='1'" --gas-price-tolerance "${TOLERANCE}" --standard-payment true`
+            `casper-client put-transaction package --node-address "${NODE}" --chain-name "${CHAIN}" --secret-key "${ADMIN}" --payment-amount "${PAYMENT}" --gas-price-tolerance 1 --standard-payment true --package-address "package-${MANAGER_HASH}" --session-entry-point "close_duel" --session-arg "duel_id:u64='0'"`
         );
         await sleep(20000);
         await checkTransactionError(txHash, "Close duel");
         await sleep(25000);
 
         // Step 6: User 1 claims rewards
-        console.log('\x1b[36m\n📋 Step 6: User 1 claiming prize...\x1b[0m\n');
+        console.log('\x1b[36m\n📋 Step 6: User 1 claiming stCSPR rewards...\x1b[0m\n');
 
         txHash = await executeCommand(
-            "User 1 claims 20 CSPR prize",
-            `casper-client put-transaction invocable-entity --node-address "${NODE}" --chain-name "${CHAIN}" --secret-key "${USER1}" --payment-amount "${PAYMENT}" --entity-address "package-${MANAGER_HASH}" --session-entry-point "claim_rewards" --session-arg "duel_id:u64='1'" --gas-price-tolerance "${TOLERANCE}" --standard-payment true`
+            "User 1 claims stCSPR prize",
+            `casper-client put-transaction package --node-address "${NODE}" --chain-name "${CHAIN}" --secret-key "${USER1}" --payment-amount "${PAYMENT}" --gas-price-tolerance 1 --standard-payment true --package-address "package-${MANAGER_HASH}" --session-entry-point "claim_rewards" --session-arg "duel_id:u64='0'"`
         );
         await sleep(20000);
         await checkTransactionError(txHash, "User 1 claims prize");
@@ -192,7 +209,8 @@ async function main() {
 
         // Success
         console.log('\n\x1b[34m' + '='.repeat(60) + '\x1b[0m');
-        console.log('\x1b[32m🎉 User 1 WINS! Receives 20 CSPR Prize! 🎉\x1b[0m');
+        console.log('\x1b[32m🎉 User 1 WINS! Receives 20 stCSPR (worth ~20 CSPR + rewards)! 🎉\x1b[0m');
+        console.log('\x1b[36m💡 Winner can now unstake stCSPR to receive CSPR + staking rewards\x1b[0m');
         console.log('\x1b[34m' + '='.repeat(60) + '\x1b[0m\n');
 
         console.log(`\x1b[36m📄 Success log saved to: ${SUCCESS_LOG}\x1b[0m`);

@@ -1,8 +1,11 @@
 // FlipDuel - DuelManager Contract
 // Manages competitive NFT trading duels on Casper Network
+// Integrated with LiquidStake for yield-generating prize pools
 
 use odra::prelude::*;
-use odra::casper_types::U512;
+use odra::casper_types::{U512, U256, PublicKey};
+use odra::ContractRef;
+use crate::liquid_stake::LiquidStakeContractRef;
 
 #[odra::module]
 pub struct FlipDuelManager {
@@ -11,6 +14,8 @@ pub struct FlipDuelManager {
     user_duels: Mapping<Address, List<u64>>,
     next_duel_id: Var<u64>,
     trading_engine: Var<Address>,
+    staking_contract: Var<Address>,
+    default_validator: Var<Option<PublicKey>>,
     owner: Var<Address>,
     platform_fee_percentage: Var<u8>,
     total_duels_created: Var<u64>,
@@ -24,6 +29,9 @@ pub struct Duel {
     pub participants: Vec<Address>,
     pub entry_fee: U512,
     pub prize_pool: U512,
+    pub stcspr_staked: U256,
+    pub withdrawal_request_id: Option<u64>,
+    pub withdrawal_requested_at: u64,
     pub start_time: u64,
     pub end_time: u64,
     pub duration_seconds: u64,
@@ -36,10 +44,12 @@ pub struct Duel {
 
 #[odra::odra_type]
 pub enum DuelStatus {
-    Open,      // Accepting players
-    Active,    // Trading in progress
-    Closed,    // Completed, winner determined
-    Cancelled, // Cancelled before starting
+    Open,              // Accepting players
+    Active,            // Trading in progress
+    Closed,            // Completed, winner determined, withdrawal requested
+    WithdrawalPending, // Waiting for unbonding period
+    Completed,         // Winner claimed rewards
+    Cancelled,         // Cancelled before starting
 }
 
 #[odra::module]
@@ -64,15 +74,34 @@ impl FlipDuelManager {
         self.trading_engine.set(trading_engine_addr);
     }
 
-    /// Create a new trading duel
-    #[odra(payable)]
+    /// Set staking contract address (owner only)
+    pub fn set_staking_contract(&mut self, staking_contract_addr: Address) {
+        let caller = self.env().caller();
+        let owner = self.owner.get().unwrap();
+        if caller != owner {
+            self.env().revert(Error::Unauthorized);
+        }
+        self.staking_contract.set(staking_contract_addr);
+    }
+
+    /// Set default validator for staking (owner only)
+    pub fn set_validator(&mut self, validator: PublicKey) {
+        let caller = self.env().caller();
+        let owner = self.owner.get().unwrap();
+        if caller != owner {
+            self.env().revert(Error::Unauthorized);
+        }
+        self.default_validator.set(Some(validator));
+    }
+
+    /// Create a new trading duel with staked entry fee
     pub fn create_duel(
         &mut self,
         duration_seconds: u64,
         nft_collection: String,
         max_participants: u8,
+        entry_fee: U512,
     ) -> u64 {
-        let entry_fee = self.env().attached_value();
         if entry_fee == U512::zero() {
             self.env().revert(Error::InvalidEntryFee);
         }
@@ -89,8 +118,22 @@ impl FlipDuelManager {
             self.env().revert(Error::InvalidParticipantCount);
         }
 
+        let staking_addr = self.staking_contract.get();
+        if staking_addr.is_none() {
+            self.env().revert(Error::StakingContractNotSet);
+        }
+
+        let validator = self.default_validator.get().unwrap_or(None);
+        if validator.is_none() {
+            self.env().revert(Error::ValidatorNotSet);
+        }
+
         let duel_id = self.next_duel_id.get_or_default();
         let creator = self.env().caller();
+
+        // Stake entry fee in LiquidStake (without balance verification)
+        let mut staking_contract = LiquidStakeContractRef::new(self.env(), staking_addr.unwrap());
+        let stcspr_minted = staking_contract.stake(validator.unwrap(), entry_fee);
 
         let mut participants = Vec::new();
         participants.push(creator);
@@ -101,6 +144,9 @@ impl FlipDuelManager {
             participants,
             entry_fee,
             prize_pool: entry_fee,
+            stcspr_staked: stcspr_minted,
+            withdrawal_request_id: None,
+            withdrawal_requested_at: 0,
             start_time: 0,
             end_time: 0,
             duration_seconds,
@@ -114,10 +160,6 @@ impl FlipDuelManager {
         let duel_clone = duel.clone();
         self.duels.set(&duel_id, duel_clone);
         self.active_duels.push(duel_id);
-
-        // User duels tracking disabled - List in Mapping not supported
-        // user_duels.push(duel_id);
-        // self.user_duels.set(&creator, user_duels);
 
         self.next_duel_id.set(duel_id + 1);
         let total = self.total_duels_created.get_or_default();
@@ -134,18 +176,18 @@ impl FlipDuelManager {
         duel_id
     }
 
-    /// Join an existing duel
-    #[odra(payable)]
+    /// Join an existing duel with staked entry fee
     pub fn join_duel(&mut self, duel_id: u64) {
-        let mut duel = self.duels.get(&duel_id).expect("FlipDuel: Duel not found");
+        let duel_opt = self.duels.get(&duel_id);
+        if duel_opt.is_none() {
+            self.env().revert(Error::DuelNotEnded); // Using existing error as placeholder
+        }
+        let mut duel = duel_opt.unwrap();
         let caller = self.env().caller();
-        let attached_value = self.env().attached_value();
+        let entry_fee = duel.entry_fee;
 
         if !matches!(duel.status, DuelStatus::Open) {
             self.env().revert(Error::DuelNotOpen);
-        }
-        if attached_value != duel.entry_fee {
-            self.env().revert(Error::IncorrectFee);
         }
         if duel.participants.contains(&caller) {
             self.env().revert(Error::AlreadyParticipant);
@@ -154,8 +196,16 @@ impl FlipDuelManager {
             self.env().revert(Error::DuelFull);
         }
 
+        let staking_addr = self.staking_contract.get().unwrap_or_else(|| self.env().revert(Error::StakingContractNotSet));
+        let validator = self.default_validator.get().unwrap_or_else(|| self.env().revert(Error::ValidatorNotSet)).unwrap_or_else(|| self.env().revert(Error::ValidatorNotSet));
+
+        // Stake additional entry fee in LiquidStake (without balance verification)
+        let mut staking_contract = LiquidStakeContractRef::new(self.env(), staking_addr);
+        let stcspr_minted = staking_contract.stake(validator, entry_fee);
+
         duel.participants.push(caller);
-        duel.prize_pool = duel.prize_pool + attached_value;
+        duel.prize_pool = duel.prize_pool + entry_fee;
+        duel.stcspr_staked = duel.stcspr_staked + stcspr_minted;
 
         // Auto-start if max participants reached
         if duel.participants.len() == duel.max_participants as usize {
@@ -164,10 +214,6 @@ impl FlipDuelManager {
 
         let duel_clone = duel.clone();
         self.duels.set(&duel_id, duel_clone);
-
-        // User duels tracking disabled - List in Mapping not supported
-        // user_duels.push(duel_id);
-        // self.user_duels.set(&creator, user_duels);
 
         self.env().emit_event(PlayerJoined {
             duel_id,
@@ -216,7 +262,7 @@ impl FlipDuelManager {
         });
     }
 
-    /// Close a duel and determine winner
+    /// Close a duel, determine winner, and request unstake
     pub fn close_duel(&mut self, duel_id: u64) {
         let mut duel = self.duels.get(&duel_id).expect("FlipDuel: Duel not found");
         let current_time = self.env().get_block_time();
@@ -240,8 +286,16 @@ impl FlipDuelManager {
             max_gain = 0;
         }
 
+        // Request unstake from LiquidStake
+        let staking_addr = self.staking_contract.get().unwrap();
+        let mut staking_contract = LiquidStakeContractRef::new(self.env(),staking_addr);
+        let stcspr_amount = u256_to_u512(duel.stcspr_staked);
+        let request_id = staking_contract.request_unstake(stcspr_amount);
+
         duel.winner = winner;
-        duel.status = DuelStatus::Closed;
+        duel.withdrawal_request_id = Some(request_id);
+        duel.withdrawal_requested_at = current_time;
+        duel.status = DuelStatus::WithdrawalPending;
         let duel_clone = duel.clone();
         self.duels.set(&duel_id, duel_clone);
 
@@ -253,13 +307,13 @@ impl FlipDuelManager {
         });
     }
 
-    /// Winner claims their prize
+    /// Winner claims their prize after unbonding period
     pub fn claim_rewards(&mut self, duel_id: u64) {
         let mut duel = self.duels.get(&duel_id).expect("FlipDuel: Duel not found");
         let caller = self.env().caller();
 
-        if !matches!(duel.status, DuelStatus::Closed) {
-            self.env().revert(Error::DuelNotClosed);
+        if !matches!(duel.status, DuelStatus::WithdrawalPending) {
+            self.env().revert(Error::WithdrawalNotReady);
         }
         if duel.winner != Some(caller) {
             self.env().revert(Error::NotWinner);
@@ -268,11 +322,33 @@ impl FlipDuelManager {
             self.env().revert(Error::AlreadyClaimed);
         }
 
+        let request_id = duel.withdrawal_request_id.unwrap();
+
+        // Check if withdrawal is ready and claim from LiquidStake
+        let staking_addr = self.staking_contract.get().unwrap();
+        let mut staking_contract = LiquidStakeContractRef::new(self.env(),staking_addr);
+
+        if !staking_contract.is_withdrawal_ready(request_id) {
+            self.env().revert(Error::WithdrawalNotReady);
+        }
+
+        // Get balance before claim
+        let balance_before = self.env().self_balance();
+
+        // Claim from LiquidStake - CSPR comes to this contract
+        staking_contract.claim(request_id);
+
+        // Get balance after claim
+        let balance_after = self.env().self_balance();
+        let claimed_amount = balance_after - balance_before;
+
+        // Calculate platform fee and winner amount
         let platform_fee_pct = self.platform_fee_percentage.get_or_default();
-        let platform_fee = (duel.prize_pool * U512::from(platform_fee_pct)) / U512::from(100);
-        let winner_amount = duel.prize_pool - platform_fee;
+        let platform_fee = (claimed_amount * U512::from(platform_fee_pct)) / U512::from(100);
+        let winner_amount = claimed_amount - platform_fee;
 
         duel.claimed = true;
+        duel.status = DuelStatus::Completed;
         let duel_clone = duel.clone();
         self.duels.set(&duel_id, duel_clone);
 
@@ -283,11 +359,7 @@ impl FlipDuelManager {
         // Transfer prize to winner
         self.env().transfer_tokens(&caller, &winner_amount);
 
-        // Transfer platform fee (could be to treasury address)
-        if platform_fee > U512::zero() {
-            // In production: transfer to designated treasury address
-            // For now, keeps in contract
-        }
+        // Platform fee stays in contract (treasury)
 
         self.env().emit_event(RewardsClaimed {
             duel_id,
@@ -297,7 +369,7 @@ impl FlipDuelManager {
         });
     }
 
-    /// Cancel a duel (only if less than 2 players)
+    /// Cancel a duel and request unstake for refunds (only if less than 2 players)
     pub fn cancel_duel(&mut self, duel_id: u64) {
         let mut duel = self.duels.get(&duel_id).expect("FlipDuel: Duel not found");
         let caller = self.env().caller();
@@ -312,18 +384,73 @@ impl FlipDuelManager {
             self.env().revert(Error::CannotCancel);
         }
 
+        // Request unstake from LiquidStake
+        let staking_addr = self.staking_contract.get().unwrap();
+        let mut staking_contract = LiquidStakeContractRef::new(self.env(),staking_addr);
+        let stcspr_amount = u256_to_u512(duel.stcspr_staked);
+        let request_id = staking_contract.request_unstake(stcspr_amount);
+
+        duel.withdrawal_request_id = Some(request_id);
+        duel.withdrawal_requested_at = self.env().get_block_time();
         duel.status = DuelStatus::Cancelled;
         let duel_clone = duel.clone();
         self.duels.set(&duel_id, duel_clone);
 
-        // Refund all participants
-        for participant in &duel.participants {
-            self.env().transfer_tokens(participant, &duel.entry_fee);
-        }
-
-        self.env().emit_event(DuelCancelled { 
+        self.env().emit_event(DuelCancelled {
             duel_id,
             refunded_players: duel.participants.len() as u8,
+        });
+    }
+
+    /// Claim refund for cancelled duel after unbonding period
+    pub fn claim_refund(&mut self, duel_id: u64) {
+        let mut duel = self.duels.get(&duel_id).expect("FlipDuel: Duel not found");
+        let caller = self.env().caller();
+
+        if !matches!(duel.status, DuelStatus::Cancelled) {
+            self.env().revert(Error::DuelNotCancelled);
+        }
+        if !duel.participants.contains(&caller) {
+            self.env().revert(Error::NotParticipant);
+        }
+        if duel.claimed {
+            self.env().revert(Error::AlreadyClaimed);
+        }
+
+        let request_id = duel.withdrawal_request_id.unwrap();
+
+        // Check if withdrawal is ready
+        let staking_addr = self.staking_contract.get().unwrap();
+        let mut staking_contract = LiquidStakeContractRef::new(self.env(),staking_addr);
+
+        if !staking_contract.is_withdrawal_ready(request_id) {
+            self.env().revert(Error::WithdrawalNotReady);
+        }
+
+        // Get balance before claim
+        let balance_before = self.env().self_balance();
+
+        // Claim from LiquidStake
+        staking_contract.claim(request_id);
+
+        // Get balance after claim
+        let balance_after = self.env().self_balance();
+        let claimed_amount = balance_after - balance_before;
+
+        // Mark as claimed
+        duel.claimed = true;
+        let duel_clone = duel.clone();
+        self.duels.set(&duel_id, duel_clone);
+
+        // Refund each participant proportionally
+        let refund_per_participant = claimed_amount / U512::from(duel.participants.len() as u64);
+        for participant in &duel.participants {
+            self.env().transfer_tokens(participant, &refund_per_participant);
+        }
+
+        self.env().emit_event(RefundClaimed {
+            duel_id,
+            total_amount: claimed_amount,
         });
     }
 
@@ -428,6 +555,12 @@ pub struct DuelCancelled {
     pub refunded_players: u8,
 }
 
+#[odra::event]
+pub struct RefundClaimed {
+    pub duel_id: u64,
+    pub total_amount: U512,
+}
+
 #[odra::odra_error]
 pub enum Error {
     InvalidEntryFee,
@@ -447,4 +580,20 @@ pub enum Error {
     AlreadyClaimed,
     CannotCancel,
     InvalidFeePercentage,
+    StakingContractNotSet,
+    ValidatorNotSet,
+    StakingFailed,
+    UnstakeFailed,
+    WithdrawalNotReady,
+    ClaimFailed,
+    InsufficientStakingLiquidity,
+    DuelNotCancelled,
+    NotParticipant,
+}
+
+// Helper function for U256 to U512 conversion
+fn u256_to_u512(value: U256) -> U512 {
+    let mut bytes = [0u8; 32];
+    value.to_little_endian(&mut bytes);
+    U512::from_little_endian(&bytes)
 }
