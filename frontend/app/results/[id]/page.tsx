@@ -92,8 +92,8 @@ export default function ResultsPage() {
                 </p>
                 <div className="card-retro bg-retro-yellow inline-block px-8 py-4">
                   <div className="text-sm text-text-muted uppercase mb-1">Prize Won</div>
-                  <div className="text-4xl font-display text-retro-charcoal">
-                    +{prizeAmount.toFixed(3)} ETH
+                  <div className="text-4xl font-retro text-retro-charcoal">
+                    +{prizeAmount.toFixed(3)} CSPR
                   </div>
                 </div>
               </div>
@@ -150,24 +150,24 @@ export default function ResultsPage() {
                   <div className="bg-surface/80 border-[3px] border-retro-charcoal p-3">
                     <div className="text-xs text-text-muted uppercase">Starting</div>
                     <div className="font-bold text-retro-charcoal">
-                      {winner.startingBalance.toFixed(3)} ETH
+                      {winner.startingBalance.toFixed(3)} CSPR
                     </div>
                   </div>
                   <div className="bg-surface/80 border-[3px] border-retro-charcoal p-3">
                     <div className="text-xs text-text-muted uppercase">Final</div>
                     <div className="font-bold text-retro-blue">
-                      {winner.finalBalance.toFixed(3)} ETH
+                      {winner.finalBalance.toFixed(3)} CSPR
                     </div>
                   </div>
                 </div>
 
                 <div className="bg-retro-yellow border-[3px] border-retro-charcoal p-4 shadow-retro-inset">
                   <div className="text-xs text-text-muted uppercase mb-1">Total P&L</div>
-                  <div className="text-3xl font-display text-retro-charcoal">
+                  <div className="text-3xl font-retro text-retro-charcoal">
                     +{winner.pnlPercent.toFixed(2)}%
                   </div>
                   <div className="text-sm font-bold text-retro-green">
-                    +{winner.totalPnl.toFixed(4)} ETH
+                    +{winner.totalPnl.toFixed(4)} CSPR
                   </div>
                 </div>
               </div>
@@ -192,24 +192,24 @@ export default function ResultsPage() {
                   <div className="bg-surface/80 border-[3px] border-retro-charcoal p-3">
                     <div className="text-xs text-text-muted uppercase">Starting</div>
                     <div className="font-bold text-retro-charcoal">
-                      {loser.startingBalance.toFixed(3)} ETH
+                      {loser.startingBalance.toFixed(3)} CSPR
                     </div>
                   </div>
                   <div className="bg-surface/80 border-[3px] border-retro-charcoal p-3">
                     <div className="text-xs text-text-muted uppercase">Final</div>
                     <div className="font-bold text-retro-blue">
-                      {loser.finalBalance.toFixed(3)} ETH
+                      {loser.finalBalance.toFixed(3)} CSPR
                     </div>
                   </div>
                 </div>
 
                 <div className="bg-surface border-[3px] border-retro-charcoal p-4 shadow-retro-inset">
                   <div className="text-xs text-text-muted uppercase mb-1">Total P&L</div>
-                  <div className="text-3xl font-display text-retro-charcoal">
+                  <div className="text-3xl font-retro text-retro-charcoal">
                     {loser.pnlPercent.toFixed(2)}%
                   </div>
                   <div className="text-sm font-bold text-retro-coral">
-                    {loser.totalPnl.toFixed(4)} ETH
+                    {loser.totalPnl.toFixed(4)} CSPR
                   </div>
                 </div>
               </div>
@@ -242,14 +242,14 @@ export default function ResultsPage() {
                             {trade.type}
                           </span>
                         </td>
-                        <td className="py-3 px-4 font-mono">{trade.amount.toFixed(4)} ETH</td>
+                        <td className="py-3 px-4 font-mono">{trade.amount.toFixed(4)} CSPR</td>
                         <td className="py-3 px-4 font-mono">${trade.price.toFixed(2)}</td>
                         <td className="py-3 px-4 text-text-muted">{trade.timestamp}</td>
                         <td className="py-3 px-4">
                           <span className={`font-bold ${
                             trade.pnl >= 0 ? 'text-retro-green' : 'text-retro-coral'
                           }`}>
-                            {trade.pnl > 0 ? '+' : ''}{trade.pnl.toFixed(4)} ETH
+                            {trade.pnl > 0 ? '+' : ''}{trade.pnl.toFixed(4)} CSPR
                           </span>
                         </td>
                       </tr>
@@ -260,10 +260,10 @@ export default function ResultsPage() {
 
               <div className="mt-4 pt-4 border-t-4 border-retro-charcoal flex justify-between items-center">
                 <span className="retro-subheading">TOTAL</span>
-                <span className={`text-2xl font-display ${
+                <span className={`text-2xl font-retro ${
                   myStats.totalPnl >= 0 ? 'text-retro-green' : 'text-retro-coral'
                 }`}>
-                  {myStats.totalPnl > 0 ? '+' : ''}{myStats.totalPnl.toFixed(4)} ETH
+                  {myStats.totalPnl > 0 ? '+' : ''}{myStats.totalPnl.toFixed(4)} CSPR
                 </span>
               </div>
             </div>

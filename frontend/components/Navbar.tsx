@@ -2,12 +2,17 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Menu, X, Wallet, User, ChevronDown } from 'lucide-react'
-import clsx from 'clsx'
+import { Menu, X, Wallet } from 'lucide-react'
+import { useWallet } from '@/contexts/WalletContext'
+import { casperWallet } from '@/lib/casper-wallet'
 
-export default function Navbar() {
+interface NavbarProps {
+  visible?: boolean
+}
+
+export default function Navbar({ visible = true }: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [walletConnected, setWalletConnected] = useState(false)
+  const { walletConnected, walletAddress, walletBalance, isConnecting, connectWallet, disconnectWallet } = useWallet()
 
   const navLinks = [
     { name: 'Home', href: '/' },
@@ -16,22 +21,26 @@ export default function Navbar() {
     { name: 'History', href: '/history' },
   ]
 
-  const handleConnectWallet = () => {
-    // TODO: Implement wallet connection logic
-    setWalletConnected(true)
-  }
+  if (!visible) return null
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-surface border-b-4 border-border shadow-retro">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-surface border-b-2 border-border shadow-retro backdrop-blur-sm bg-opacity-95">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 hover:scale-105 transition-transform">
-            <div className="w-12 h-12 bg-retro-purple border-4 border-border flex items-center justify-center shadow-retro">
+          <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-all duration-300">
+            <div className="w-12 h-12 bg-retro-cherry border-2 border-retro-cherry-light flex items-center justify-center transition-all duration-300 hover:bg-retro-cherry-light rounded-lg">
               <span className="text-2xl">⚔️</span>
             </div>
             <div>
-              <h1 className="retro-heading text-xl leading-none mb-1">FLIP DUEL</h1>
+              <h1 className="text-xl leading-none mb-1 uppercase tracking-wide" style={{
+                fontFamily: 'Corptic, Impact, Arial Black, sans-serif',
+                color: '#DC143C',
+                textShadow: '2px 2px 0 #FF1744, -1px -1px 0 #B71C1C',
+                transform: 'skewY(-2deg)'
+              }}>
+                FLIP DUEL
+              </h1>
               <p className="text-xs text-text-muted uppercase font-bold">Trading Arena</p>
             </div>
           </Link>
@@ -42,7 +51,7 @@ export default function Navbar() {
               <Link
                 key={link.name}
                 href={link.href}
-                className="px-4 py-2 border-[3px] border-border bg-surface-light text-text-primary font-bold uppercase text-sm hover:bg-retro-purple hover:translate-x-1 hover:translate-y-1 hover:shadow-none shadow-retro transition-all"
+                className="px-4 py-2 border-2 border-accent-gray bg-surface-light text-text-primary font-bold uppercase text-sm hover:bg-retro-cherry hover:border-retro-cherry-light shadow-retro transition-all duration-300 rounded-lg"
               >
                 {link.name}
               </Link>
@@ -53,24 +62,34 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-3">
             {walletConnected ? (
               <>
+                {/* Testnet Badge */}
+                <div className="px-3 py-1 bg-accent-gray border-2 border-accent-light-gray text-text-primary text-xs font-bold uppercase transition-all duration-300 hover:bg-accent-light-gray rounded-md">
+                  TESTNET
+                </div>
+
                 {/* Wallet Balance */}
-                <div className="flex items-center gap-2 px-4 py-2 bg-retro-green border-[3px] border-border shadow-retro-inset">
-                  <Wallet className="w-4 h-4 text-surface-dark" />
-                  <span className="font-bold text-surface-dark">2.45</span>
-                  <span className="text-xs text-surface-dark font-bold">ETH</span>
+                <div className="flex items-center gap-2 px-4 py-2 bg-surface-light border-2 border-accent-gray shadow-retro-inset transition-all duration-300 hover:border-retro-cherry hover:shadow-retro rounded-lg">
+                  <Wallet className="w-4 h-4 text-text-primary" />
+                  <span className="font-bold text-text-primary">{walletBalance || '0.0'}</span>
+                  <span className="text-xs text-text-muted font-bold">CSPR</span>
                 </div>
 
                 {/* Wallet Address */}
-                <button className="px-4 py-2 bg-retro-cyan border-[3px] border-border text-surface-dark font-mono text-sm font-bold shadow-retro hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all">
-                  0x7a3f...9d2c
+                <button
+                  onClick={disconnectWallet}
+                  className="px-4 py-2 bg-retro-cherry border-2 border-retro-cherry-light text-text-primary font-mono text-sm font-bold shadow-retro hover:bg-retro-cherry-light hover:shadow-retro-lg transition-all duration-300 hover:-translate-y-0.5 rounded-lg"
+                  title="Click to disconnect"
+                >
+                  {walletAddress ? casperWallet.formatAddress(walletAddress) : '0x...'}
                 </button>
               </>
             ) : (
               <button
-                onClick={handleConnectWallet}
-                className="btn-primary"
+                onClick={connectWallet}
+                disabled={isConnecting}
+                className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                CONNECT WALLET
+                {isConnecting ? 'CONNECTING...' : 'CONNECT WALLET'}
               </button>
             )}
           </div>
@@ -78,7 +97,7 @@ export default function Navbar() {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 border-[3px] border-border bg-retro-pink text-text-primary shadow-retro hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
+            className="md:hidden p-2 border-2 border-retro-cherry-light bg-retro-cherry text-text-primary shadow-retro hover:bg-retro-cherry-light transition-colors duration-300 rounded-lg"
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -87,34 +106,44 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-surface-light border-t-4 border-border animate-slideDown">
+        <div className="md:hidden bg-surface-light border-t-2 border-accent-gray">
           <div className="px-4 py-4 space-y-2">
             {navLinks.map((link) => (
               <Link
                 key={link.name}
                 href={link.href}
-                className="block px-4 py-3 border-[3px] border-border bg-surface text-text-primary font-bold uppercase text-sm hover:bg-retro-purple shadow-retro transition-all"
+                className="block px-4 py-3 border-2 border-accent-gray bg-surface text-text-primary font-bold uppercase text-sm hover:bg-retro-cherry shadow-retro transition-colors duration-300 rounded-lg"
               >
                 {link.name}
               </Link>
             ))}
-            <div className="pt-3 border-t-3 border-border space-y-2">
+            <div className="pt-3 border-t-2 border-accent-gray space-y-2">
               {walletConnected ? (
                 <>
-                  <div className="flex items-center gap-2 px-4 py-3 bg-retro-green border-[3px] border-border shadow-retro-inset">
-                    <Wallet className="w-4 h-4 text-surface-dark" />
-                    <span className="font-bold text-surface-dark">2.45 ETH</span>
+                  <div className="flex items-center gap-2 px-4 py-3 bg-surface-light border-2 border-accent-gray shadow-retro-inset rounded-lg">
+                    <Wallet className="w-4 h-4 text-text-primary" />
+                    <span className="font-bold text-text-primary">{walletBalance || '0'} CSPR</span>
                   </div>
-                  <div className="px-4 py-3 bg-retro-cyan border-[3px] border-border text-surface-dark font-mono text-sm font-bold text-center shadow-retro">
-                    0x7a3f...9d2c
-                  </div>
+                  <button
+                    onClick={disconnectWallet}
+                    className="px-4 py-3 bg-retro-cherry border-2 border-retro-cherry-light text-text-primary font-mono text-sm font-bold text-center shadow-retro w-full hover:bg-retro-cherry-light transition-colors duration-300 rounded-lg"
+                  >
+                    {walletAddress ? casperWallet.formatAddress(walletAddress) : '0x...'}
+                  </button>
+                  <button
+                    onClick={disconnectWallet}
+                    className="btn-outline w-full text-sm"
+                  >
+                    DISCONNECT
+                  </button>
                 </>
               ) : (
                 <button
-                  onClick={handleConnectWallet}
-                  className="btn-primary w-full"
+                  onClick={connectWallet}
+                  disabled={isConnecting}
+                  className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  CONNECT WALLET
+                  {isConnecting ? 'CONNECTING...' : 'CONNECT WALLET'}
                 </button>
               )}
             </div>

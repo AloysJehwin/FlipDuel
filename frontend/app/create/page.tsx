@@ -4,18 +4,18 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 
-const TOKENS = ['ETH', 'BTC', 'SOL', 'MATIC', 'AVAX', 'DOT']
+const TRADING_TOKENS = ['ETH', 'BTC', 'SOL', 'MATIC', 'AVAX', 'NFT-Dragons', 'NFT-Apes', 'NFT-Punks']
 const DURATIONS = [5, 10, 15, 20, 30, 60]
-const ENTRY_PRESETS = [0.01, 0.05, 0.1, 0.25, 0.5, 1.0]
+const ENTRY_PRESETS = [10, 50, 100, 250, 500, 1000]
 
 export default function CreateDuelPage() {
   const router = useRouter()
-  const [entryFee, setEntryFee] = useState(0.1)
+  const [entryFee, setEntryFee] = useState(100) // Entry fee in CSPR
   const [customEntry, setCustomEntry] = useState('')
-  const [selectedToken, setSelectedToken] = useState('ETH')
+  const [selectedToken, setSelectedToken] = useState('ETH') // Token to trade during duel
   const [duration, setDuration] = useState(15)
   const [isPrivate, setIsPrivate] = useState(false)
-  const [walletBalance] = useState(2.45) // Mock wallet balance
+  const [walletBalance] = useState(2450) // Mock wallet balance in CSPR
 
   const handleCreateDuel = () => {
     // TODO: Connect to smart contract and create duel
@@ -38,11 +38,11 @@ export default function CreateDuelPage() {
     <div className="min-h-screen bg-primary-bg">
       <Navbar />
 
-      <main className="pt-24 px-4 sm:px-6 lg:px-8 pb-16">
+      <main className="pt-32 px-4 sm:px-6 lg:px-8 pb-16">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="retro-heading text-4xl md:text-5xl mb-4">
+            <h1 className="retro-heading text-2xl md:text-3xl mb-4">
               CREATE DUEL
             </h1>
             <p className="text-text-muted">
@@ -68,13 +68,13 @@ export default function CreateDuelPage() {
                         setEntryFee(preset)
                         setCustomEntry('')
                       }}
-                      className={`py-3 border-[3px] border-retro-charcoal font-bold uppercase transition-all ${
+                      className={`py-3 border-2 border-accent-gray font-bold uppercase transition-all rounded-lg ${
                         entryFee === preset && !customEntry
-                          ? 'bg-retro-coral text-retro-cream shadow-retro'
-                          : 'bg-surface text-retro-charcoal hover:bg-retro-tan'
+                          ? 'bg-retro-cherry text-text-primary shadow-retro border-retro-cherry-light'
+                          : 'bg-surface-light text-text-primary hover:bg-accent-gray'
                       }`}
                     >
-                      {preset} ETH
+                      {preset} CSPR
                     </button>
                   ))}
                 </div>
@@ -96,14 +96,14 @@ export default function CreateDuelPage() {
                         setEntryFee(parseFloat(e.target.value) || 0)
                       }}
                       placeholder="0.00"
-                      className="flex-1 px-4 py-3 border-4 border-retro-charcoal bg-surface text-retro-charcoal font-bold text-lg focus:outline-none focus:border-retro-blue"
+                      className="flex-1 px-4 py-3 border-2 border-accent-gray bg-surface text-text-primary font-bold text-lg focus:outline-none focus:border-retro-cherry rounded-lg"
                     />
-                    <div className="px-4 py-3 bg-retro-beige border-4 border-retro-charcoal font-bold">
-                      ETH
+                    <div className="px-4 py-3 bg-accent-gray border-2 border-accent-light-gray font-bold text-text-primary rounded-lg">
+                      CSPR
                     </div>
                   </div>
                   <div className="text-xs text-text-muted mt-2">
-                    Wallet Balance: {walletBalance} ETH
+                    Wallet Balance: {walletBalance} CSPR
                   </div>
                 </div>
               </div>
@@ -111,24 +111,24 @@ export default function CreateDuelPage() {
               {/* Token Selection */}
               <div className="card-retro">
                 <h3 className="retro-subheading text-xl mb-4">
-                  2. SELECT TOKEN
+                  2. SELECT TRADING TOKEN
                 </h3>
                 <p className="text-sm text-text-muted mb-4">
-                  Choose which crypto token you'll trade during the duel
+                  Choose which token/NFT you'll trade during the duel
                 </p>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {TOKENS.map((token) => (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {TRADING_TOKENS.map((token) => (
                     <button
                       key={token}
                       onClick={() => setSelectedToken(token)}
-                      className={`py-4 border-4 border-retro-charcoal font-bold text-lg uppercase transition-all ${
+                      className={`py-4 border-2 border-accent-gray font-bold text-sm uppercase transition-all rounded-lg ${
                         selectedToken === token
-                          ? 'bg-retro-blue text-retro-cream shadow-retro scale-105'
-                          : 'bg-surface text-retro-charcoal hover:bg-retro-tan'
+                          ? 'bg-retro-cherry text-text-primary shadow-retro scale-105 border-retro-cherry-light'
+                          : 'bg-surface-light text-text-primary hover:bg-accent-gray'
                       }`}
                     >
-                      {token}
+                      {token.replace('NFT-', 'NFT ')}
                     </button>
                   ))}
                 </div>
@@ -148,10 +148,10 @@ export default function CreateDuelPage() {
                     <button
                       key={dur}
                       onClick={() => setDuration(dur)}
-                      className={`py-3 border-[3px] border-retro-charcoal font-bold uppercase transition-all ${
+                      className={`py-3 border-2 border-accent-gray font-bold uppercase transition-all rounded-lg ${
                         duration === dur
-                          ? 'bg-retro-green text-retro-cream shadow-retro'
-                          : 'bg-surface text-retro-charcoal hover:bg-retro-tan'
+                          ? 'bg-retro-cherry text-text-primary shadow-retro border-retro-cherry-light'
+                          : 'bg-surface-light text-text-primary hover:bg-accent-gray'
                       }`}
                     >
                       {dur} MIN
@@ -169,10 +169,10 @@ export default function CreateDuelPage() {
                 <div className="space-y-3">
                   <button
                     onClick={() => setIsPrivate(false)}
-                    className={`w-full p-4 border-4 border-retro-charcoal text-left transition-all ${
+                    className={`w-full p-4 border-2 border-accent-gray text-left transition-all rounded-lg ${
                       !isPrivate
-                        ? 'bg-retro-blue text-retro-cream shadow-retro'
-                        : 'bg-surface text-retro-charcoal hover:bg-retro-tan'
+                        ? 'bg-retro-cherry text-text-primary shadow-retro border-retro-cherry-light'
+                        : 'bg-surface-light text-text-primary hover:bg-accent-gray'
                     }`}
                   >
                     <div className="font-bold text-lg mb-1">PUBLIC</div>
@@ -183,10 +183,10 @@ export default function CreateDuelPage() {
 
                   <button
                     onClick={() => setIsPrivate(true)}
-                    className={`w-full p-4 border-4 border-retro-charcoal text-left transition-all ${
+                    className={`w-full p-4 border-2 border-accent-gray text-left transition-all rounded-lg ${
                       isPrivate
-                        ? 'bg-retro-blue text-retro-cream shadow-retro'
-                        : 'bg-surface text-retro-charcoal hover:bg-retro-tan'
+                        ? 'bg-retro-cherry text-text-primary shadow-retro border-retro-cherry-light'
+                        : 'bg-surface-light text-text-primary hover:bg-accent-gray'
                     }`}
                   >
                     <div className="font-bold text-lg mb-1">PRIVATE</div>
@@ -201,56 +201,56 @@ export default function CreateDuelPage() {
             {/* Summary Sidebar */}
             <div className="lg:col-span-1">
               <div className="sticky top-24">
-                <div className="retro-frame bg-retro-gradient p-6">
-                  <h3 className="retro-subheading text-lg mb-4 text-retro-cream">
+                <div className="retro-frame bg-surface p-6">
+                  <h3 className="retro-subheading text-lg mb-4 text-text-primary">
                     DUEL SUMMARY
                   </h3>
 
                   <div className="space-y-4 mb-6">
-                    <div className="bg-surface/90 border-[3px] border-retro-charcoal p-3">
+                    <div className="bg-surface-light border-2 border-accent-gray p-3 rounded-lg">
                       <div className="text-xs text-text-muted uppercase mb-1">
                         Your Entry Fee
                       </div>
-                      <div className="text-2xl font-display text-retro-coral">
-                        {entryFee.toFixed(3)} ETH
+                      <div className="text-2xl font-retro text-retro-cherry">
+                        {entryFee.toFixed(3)} CSPR
                       </div>
                     </div>
 
-                    <div className="bg-surface/90 border-[3px] border-retro-charcoal p-3">
+                    <div className="bg-surface-light border-2 border-accent-gray p-3 rounded-lg">
                       <div className="text-xs text-text-muted uppercase mb-1">
                         Trading Token
                       </div>
-                      <div className="text-xl font-bold text-retro-blue">
+                      <div className="text-xl font-bold text-retro-cherry">
                         {selectedToken}
                       </div>
                     </div>
 
-                    <div className="bg-surface/90 border-[3px] border-retro-charcoal p-3">
+                    <div className="bg-surface-light border-2 border-accent-gray p-3 rounded-lg">
                       <div className="text-xs text-text-muted uppercase mb-1">
                         Duration
                       </div>
-                      <div className="text-xl font-bold text-retro-green">
+                      <div className="text-xl font-bold text-accent-light-gray">
                         {duration} Minutes
                       </div>
                     </div>
 
-                    <div className="bg-retro-yellow border-[3px] border-retro-charcoal p-3 shadow-retro-inset">
+                    <div className="bg-accent-gray border-2 border-accent-light-gray p-3 shadow-retro-inset rounded-lg">
                       <div className="text-xs text-text-muted uppercase mb-1">
                         Total Prize Pool
                       </div>
-                      <div className="text-2xl font-display text-retro-charcoal">
-                        {potentialWinnings.toFixed(3)} ETH
+                      <div className="text-2xl font-retro text-text-primary">
+                        {potentialWinnings.toFixed(3)} CSPR
                       </div>
                     </div>
 
                     <div className="text-xs text-text-muted space-y-1">
                       <div className="flex justify-between">
                         <span>Platform Fee (5%)</span>
-                        <span>{platformFee.toFixed(4)} ETH</span>
+                        <span>{platformFee.toFixed(4)} CSPR</span>
                       </div>
-                      <div className="flex justify-between font-bold text-retro-charcoal">
+                      <div className="flex justify-between font-bold text-text-primary">
                         <span>Net Winnings</span>
-                        <span>{netWinnings.toFixed(3)} ETH</span>
+                        <span>{netWinnings.toFixed(3)} CSPR</span>
                       </div>
                     </div>
                   </div>
@@ -264,16 +264,16 @@ export default function CreateDuelPage() {
                   </button>
 
                   {entryFee > walletBalance && (
-                    <div className="mt-3 text-xs text-retro-coral font-bold text-center">
+                    <div className="mt-3 text-xs text-retro-cherry font-bold text-center">
                       Insufficient balance
                     </div>
                   )}
                 </div>
 
                 {/* Info Box */}
-                <div className="card mt-6 bg-retro-beige">
+                <div className="card mt-6 bg-surface">
                   <div className="text-sm space-y-2">
-                    <div className="font-bold text-retro-charcoal">💡 Quick Tips</div>
+                    <div className="font-bold text-text-primary">💡 Quick Tips</div>
                     <ul className="text-text-muted space-y-1 text-xs">
                       <li>• Higher entry fees attract experienced traders</li>
                       <li>• Shorter duels = faster action</li>

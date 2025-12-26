@@ -11,7 +11,7 @@ export default function Footer() {
           {/* Brand */}
           <div className="md:col-span-2">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-retro-coral border-4 border-retro-charcoal flex items-center justify-center shadow-retro">
+              <div className="w-12 h-12 bg-retro-cherry border-4 border-retro-cherry-light flex items-center justify-center shadow-retro rounded-lg">
                 <span className="text-2xl">⚔️</span>
               </div>
               <div>
@@ -57,21 +57,21 @@ export default function Footer() {
             <div className="flex items-center gap-2 flex-wrap">
               <a
                 href="#"
-                className="w-12 h-12 bg-retro-blue border-4 border-retro-charcoal flex items-center justify-center text-retro-cream hover:translate-x-1 hover:translate-y-1 hover:shadow-none shadow-retro transition-all"
+                className="w-12 h-12 bg-retro-cherry border-4 border-retro-cherry-light flex items-center justify-center text-text-primary hover:translate-x-1 hover:translate-y-1 hover:shadow-none shadow-retro transition-all rounded-lg"
                 aria-label="Twitter"
               >
                 <Twitter className="w-5 h-5" />
               </a>
               <a
                 href="#"
-                className="w-12 h-12 bg-retro-blue border-4 border-retro-charcoal flex items-center justify-center text-retro-cream hover:translate-x-1 hover:translate-y-1 hover:shadow-none shadow-retro transition-all"
+                className="w-12 h-12 bg-retro-cherry border-4 border-retro-cherry-light flex items-center justify-center text-text-primary hover:translate-x-1 hover:translate-y-1 hover:shadow-none shadow-retro transition-all rounded-lg"
                 aria-label="Discord"
               >
                 <MessageCircle className="w-5 h-5" />
               </a>
               <a
                 href="#"
-                className="w-12 h-12 bg-retro-charcoal border-4 border-retro-charcoal flex items-center justify-center text-retro-cream hover:translate-x-1 hover:translate-y-1 hover:shadow-none shadow-retro transition-all"
+                className="w-12 h-12 bg-accent-gray border-4 border-accent-light-gray flex items-center justify-center text-text-primary hover:translate-x-1 hover:translate-y-1 hover:shadow-none shadow-retro transition-all rounded-lg"
                 aria-label="GitHub"
               >
                 <Github className="w-5 h-5" />
@@ -96,7 +96,7 @@ export default function Footer() {
               </a>
               <span className="text-text-muted">•</span>
               <span className="text-text-muted font-bold">
-                Built on <span className="text-retro-blue">Blockchain</span>
+                Built on <span className="text-retro-cherry">Blockchain</span>
               </span>
             </div>
           </div>
