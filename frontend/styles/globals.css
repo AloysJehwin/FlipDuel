@@ -145,7 +145,7 @@
   .title-fragmented {
     font-family: 'Corptic', Impact, 'Arial Black', sans-serif;
     font-weight: normal;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
     color: #DC143C;
     text-shadow:
@@ -154,22 +154,23 @@
       3px -3px 0 rgba(255, 23, 68, 0.4),
       -3px 3px 0 rgba(183, 28, 28, 0.4);
     transform: skewY(-3deg);
+    transform-origin: center center;
     position: relative;
     line-height: 1;
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
+    display: inline-block;
     text-align: center;
-    width: fit-content;
+    padding-left: 0.05em;
   }
 
   .title-fragmented::before {
     content: attr(data-text);
     position: absolute;
-    left: -3px;
-    top: -3px;
+    left: 0;
+    top: 0;
+    width: 100%;
     color: rgba(255, 255, 255, 0.08);
     z-index: -1;
+    text-align: center;
   }
 
   /* Dark Theme Frame/Border */

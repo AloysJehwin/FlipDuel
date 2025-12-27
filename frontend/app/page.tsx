@@ -22,10 +22,10 @@ export default function Home() {
       {/* Hero Section - Full Screen */}
       <main className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 relative overflow-hidden">
         <div className="max-w-7xl mx-auto w-full">
-          <div className="text-center relative">
-            <div className="mb-16 flex flex-col items-center justify-center">
-              <h1 className="title-fragmented text-7xl sm:text-8xl md:text-9xl lg:text-[12rem] xl:text-[14rem] mb-12 leading-none animate-fadeIn" data-text="FLIP DUEL" style={{ animationDuration: '1s' }}>
-                FLIP DUEL
+          <div className="text-center relative flex flex-col items-center">
+            <div className="mb-16 w-full flex flex-col items-center justify-center">
+              <h1 className="title-fragmented text-7xl sm:text-8xl md:text-9xl lg:text-[12rem] xl:text-[14rem] mb-12 leading-none animate-fadeIn" data-text="FLIPDUEL" style={{ animationDuration: '1s', marginLeft: 0, marginRight: 0 }}>
+                FLIPDUEL
               </h1>
               <p className="retro-subheading text-2xl md:text-3xl lg:text-4xl text-text-secondary max-w-4xl mb-12 animate-slideUp" style={{ animationDelay: '0.3s', animationDuration: '0.8s', opacity: 0, animationFillMode: 'forwards' }}>
                 LIVE CRYPTO TRADING DUELS

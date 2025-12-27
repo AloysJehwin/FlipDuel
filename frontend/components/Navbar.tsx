@@ -39,7 +39,7 @@ export default function Navbar({ visible = true }: NavbarProps) {
                 textShadow: '2px 2px 0 #FF1744, -1px -1px 0 #B71C1C',
                 transform: 'skewY(-2deg)'
               }}>
-                FLIP DUEL
+                FLIPDUEL
               </h1>
               <p className="text-xs text-text-muted uppercase font-bold">Trading Arena</p>
             </div>
