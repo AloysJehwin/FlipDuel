@@ -2,7 +2,7 @@
 // Manages NFT price feeds for trading duels
 
 use odra::prelude::*;
-use odra::{casper_types::U512, Address, Mapping, Var, List};
+use odra::casper_types::U512;
 
 #[odra::module]
 pub struct FlipDuelPriceOracle {
@@ -42,20 +42,18 @@ impl FlipDuelPriceOracle {
         let caller = self.env().caller();
         self.require_authorized(caller);
 
-        require!(
-            price > U512::zero(),
-            "FlipDuel: Price must be greater than 0"
-        );
+        if price == U512::zero() {
+            self.env().revert(Error::InvalidPrice);
+        }
 
         let current_time = self.env().get_block_time();
         
         // Check if update interval has passed
         if let Some(existing) = self.nft_prices.get(&nft_id) {
             let min_interval = self.min_update_interval.get_or_default();
-            require!(
-                current_time >= existing.last_updated + min_interval,
-                "FlipDuel: Update too frequent, please wait"
-            );
+            if current_time < existing.last_updated + min_interval {
+                self.env().revert(Error::UpdateTooFrequent);
+            }
         }
 
         let update_count = self.nft_prices
@@ -91,23 +89,20 @@ impl FlipDuelPriceOracle {
         let caller = self.env().caller();
         self.require_authorized(caller);
 
-        require!(
-            !updates.is_empty(),
-            "FlipDuel: No updates provided"
-        );
-        require!(
-            updates.len() <= 50,
-            "FlipDuel: Too many updates, max 50 at once"
-        );
+        if updates.is_empty() {
+            self.env().revert(Error::EmptyBatchUpdate);
+        }
+        if updates.len() > 50 {
+            self.env().revert(Error::BatchTooLarge);
+        }
 
         let current_time = self.env().get_block_time();
         let mut updated_count = 0u32;
 
         for (nft_id, price, source) in updates {
-            require!(
-                price > U512::zero(),
-                "FlipDuel: All prices must be greater than 0"
-            );
+            if price == U512::zero() {
+            self.env().revert(Error::InvalidPrice);
+        }
 
             let update_count = self.nft_prices
                 .get(&nft_id)
@@ -166,21 +161,19 @@ impl FlipDuelPriceOracle {
     /// Add an authorized price updater
     pub fn add_authorized_updater(&mut self, updater: Address) {
         let caller = self.env().caller();
-        let owner = self.owner.get_or_revert();
+        let owner = self.owner.get().unwrap();
         
-        require!(
-            caller == owner,
-            "FlipDuel: Only owner can add updaters"
-        );
+        if caller != owner {
+            self.env().revert(Error::OnlyOwner);
+        }
 
         // Check if already authorized
         let is_authorized = (0..self.authorized_updaters.len())
             .any(|i| self.authorized_updaters.get(i) == Some(updater));
 
-        require!(
-            !is_authorized,
-            "FlipDuel: Address already authorized"
-        );
+        if is_authorized {
+            self.env().revert(Error::AlreadyAuthorized);
+        }
 
         self.authorized_updaters.push(updater);
 
@@ -193,12 +186,11 @@ impl FlipDuelPriceOracle {
     /// Remove an authorized updater
     pub fn remove_authorized_updater(&mut self, updater: Address) {
         let caller = self.env().caller();
-        let owner = self.owner.get_or_revert();
+        let owner = self.owner.get().unwrap();
         
-        require!(
-            caller == owner,
-            "FlipDuel: Only owner can remove updaters"
-        );
+        if caller != owner {
+            self.env().revert(Error::OnlyOwner);
+        }
 
         // Find and remove updater
         let mut found = false;
@@ -208,7 +200,7 @@ impl FlipDuelPriceOracle {
                 let last_idx = self.authorized_updaters.len() - 1;
                 if i != last_idx {
                     if let Some(last_val) = self.authorized_updaters.get(last_idx) {
-                        self.authorized_updaters.set(i, last_val);
+                        self.authorized_updaters.replace(i, last_val);
                     }
                 }
                 found = true;
@@ -216,10 +208,9 @@ impl FlipDuelPriceOracle {
             }
         }
 
-        require!(
-            found,
-            "FlipDuel: Address not authorized"
-        );
+        if !found {
+            self.env().revert(Error::UpdaterNotFound);
+        }
 
         self.env().emit_event(UpdaterRemoved { 
             updater,
@@ -230,20 +221,17 @@ impl FlipDuelPriceOracle {
     /// Set minimum update interval
     pub fn set_min_update_interval(&mut self, interval_ms: u64) {
         let caller = self.env().caller();
-        let owner = self.owner.get_or_revert();
+        let owner = self.owner.get().unwrap();
         
-        require!(
-            caller == owner,
-            "FlipDuel: Only owner can set interval"
-        );
-        require!(
-            interval_ms >= 1000,
-            "FlipDuel: Interval must be at least 1 second"
-        );
-        require!(
-            interval_ms <= 300000,
-            "FlipDuel: Interval cannot exceed 5 minutes"
-        );
+        if caller != owner {
+            self.env().revert(Error::OnlyOwner);
+        }
+        if interval_ms < 1000 {
+            self.env().revert(Error::InvalidInterval);
+        }
+        if interval_ms > 300000 {
+            self.env().revert(Error::InvalidInterval);
+        }
 
         let old_interval = self.min_update_interval.get_or_default();
         self.min_update_interval.set(interval_ms);
@@ -257,16 +245,14 @@ impl FlipDuelPriceOracle {
     /// Transfer ownership
     pub fn transfer_ownership(&mut self, new_owner: Address) {
         let caller = self.env().caller();
-        let owner = self.owner.get_or_revert();
+        let owner = self.owner.get().unwrap();
         
-        require!(
-            caller == owner,
-            "FlipDuel: Only owner can transfer ownership"
-        );
-        require!(
-            new_owner != Address::zero(),
-            "FlipDuel: Invalid new owner address"
-        );
+        if caller != owner {
+            self.env().revert(Error::OnlyOwner);
+        }
+        if new_owner == Address::new("0000000000000000000000000000000000000000000000000000000000000000").unwrap() {
+            self.env().revert(Error::InvalidAddress);
+        }
 
         self.owner.set(new_owner);
 
@@ -300,13 +286,13 @@ impl FlipDuelPriceOracle {
             total_updates: self.total_price_updates.get_or_default(),
             min_update_interval: self.min_update_interval.get_or_default(),
             authorized_updaters_count: self.authorized_updaters.len() as u32,
-            owner: self.owner.get_or_revert(),
+            owner: self.owner.get().unwrap(),
         }
     }
 
     /// Get owner address
     pub fn get_owner(&self) -> Address {
-        self.owner.get_or_revert()
+        self.owner.get().unwrap()
     }
 
     /// Get minimum update interval
@@ -317,10 +303,9 @@ impl FlipDuelPriceOracle {
     // ============== INTERNAL HELPERS ==============
 
     fn require_authorized(&self, address: Address) {
-        require!(
-            self.is_authorized(address),
-            "FlipDuel: Not authorized to update prices"
-        );
+        if !self.is_authorized(address) {
+            self.env().revert(Error::NotAuthorized);
+        }
     }
 }
 
@@ -377,4 +362,18 @@ pub struct IntervalUpdated {
 pub struct OwnershipTransferred {
     pub previous_owner: Address,
     pub new_owner: Address,
+}
+
+#[odra::odra_error]
+pub enum Error {
+    InvalidPrice,
+    UpdateTooFrequent,
+    EmptyBatchUpdate,
+    BatchTooLarge,
+    OnlyOwner,
+    AlreadyAuthorized,
+    UpdaterNotFound,
+    InvalidInterval,
+    InvalidAddress,
+    NotAuthorized,
 }

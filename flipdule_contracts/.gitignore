@@ -1,0 +1,55 @@
+# IDE
+.idea
+.vscode
+
+# Build artifacts
+/target
+Cargo.lock
+/wasm
+
+# Odra build artifacts
+.backend*
+.builder*
+
+# Secret keys and credentials (NEVER commit these!)
+*.pem
+secret_key.pem
+Account*.pem
+*.key
+user1_secret_key.pem
+user2_secret_key.pem
+user1_public_key.pem
+user2_public_key.pem
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Temporary/generated files
+fix_api.py
+fix_and_build.sh
+fix_all_errors.sh
+
+# OS files
+.DS_Store
+Thumbs.db
+
+#Test transactions files
+deploy_and_wire_contracts.sh
+run_simulation_now.sh
+simulate_full_duel.sh
+simulation_errors.log
+simulation_errors.log
+simulation_success.log
+complete_simulation.log
+run_simulation.js
+run_complete_simulation.js
+run_tests.sh
+run_staking_simulation.js
+staking_simulation_log.json
+run_tests.sh
+
+
+#wasm files
+proxy_caller.wasm

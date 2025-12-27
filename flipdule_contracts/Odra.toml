@@ -1,0 +1,11 @@
+[[contracts]]
+fqn = "price_oracle::FlipDuelPriceOracle"
+
+[[contracts]]
+fqn = "trading_engine::FlipDuelTradingEngine"
+
+[[contracts]]
+fqn = "duel_manager::FlipDuelManager"
+
+[[contracts]]
+fqn = "liquid_stake::LiquidStake"

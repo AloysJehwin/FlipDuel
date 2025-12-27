@@ -1,4 +1,4 @@
-# contracts
+# flipdule_contracts
 
 ## Usage
 It's recommended to install 
