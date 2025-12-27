@@ -27,7 +27,7 @@ export default function PlayerCard({
   if (isEmpty) {
     return (
       <div className="card flex flex-col items-center justify-center gap-4 min-h-[280px] border-dashed">
-        <div className="w-20 h-20 rounded-full border-2 border-dashed border-border flex items-center justify-center">
+        <div className="w-20 h-20 rounded-full border-2 border-dashed border-retro-charcoal flex items-center justify-center">
           <span className="text-4xl">?</span>
         </div>
         <p className="text-text-muted text-sm">Waiting for opponent...</p>
@@ -63,7 +63,7 @@ export default function PlayerCard({
         <div className="text-center">
           <h3 className={clsx(
             'text-xl font-bold',
-            isWinner ? 'neon-text' : 'text-text-primary'
+            isWinner ? 'neon-text' : 'text-retro-charcoal'
           )}>
             {username}
           </h3>
@@ -74,9 +74,9 @@ export default function PlayerCard({
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
             <Trophy className="w-4 h-4 text-neon-green" />
-            <span className="text-sm font-medium text-text-primary">{wins}</span>
+            <span className="text-sm font-medium text-retro-charcoal">{wins}</span>
           </div>
-          <div className="w-px h-4 bg-border"></div>
+          <div className="w-px h-4 bg-retro-charcoal"></div>
           <Badge variant="success">
             <TrendingUp className="w-3 h-3 mr-1" />
             {Math.floor(Math.random() * 30 + 70)}% WR
@@ -84,7 +84,7 @@ export default function PlayerCard({
         </div>
         
         {/* Wager */}
-        <div className="w-full mt-2 pt-4 border-t border-border">
+        <div className="w-full mt-2 pt-4 border-t border-retro-charcoal">
           <p className="text-xs text-text-muted text-center mb-1">Wager</p>
           <div className="flex items-center justify-center gap-2">
             <span className="text-2xl font-bold neon-text">{wager.toFixed(2)}</span>

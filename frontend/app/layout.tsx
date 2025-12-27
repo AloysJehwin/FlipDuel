@@ -1,9 +1,14 @@
 import type { Metadata } from 'next'
 import '../styles/globals.css'
+import { WalletProvider } from '@/contexts/WalletContext'
 
 export const metadata: Metadata = {
-  title: 'FlipDuel - 1v1 Duel Arena',
-  description: 'The ultimate 1v1 duel arena. Fast, fair, and provably random battles on the blockchain.',
+  title: 'FlipDuel - Live Crypto Trading Duels',
+  description: 'Battle traders in real-time. Pick your token, trade for the time limit, highest gains win. Winner takes all!',
+  icons: {
+    icon: '/icon',
+    apple: '/apple-icon',
+  },
 }
 
 export default function RootLayout({
@@ -13,7 +18,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <WalletProvider>
+          {children}
+        </WalletProvider>
+      </body>
     </html>
   )
 }

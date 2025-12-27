@@ -1,74 +1,75 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
+import { getAllDuels } from '@/lib/duel-api'
+import type { Duel as SupabaseDuel } from '@/lib/supabase'
 
 interface Duel {
   id: string
   creator: string
   entryFee: number
-  token: string
+  tradingToken: string
   duration: number
-  status: 'waiting' | 'active'
+  status: 'waiting' | 'active' | 'completed'
   createdAt: string
+  prizePool: number
 }
 
-const MOCK_DUELS: Duel[] = [
-  {
-    id: '1',
-    creator: '0x7a3f...9d2c',
-    entryFee: 0.1,
-    token: 'ETH',
-    duration: 15,
-    status: 'waiting',
-    createdAt: '2 min ago'
-  },
-  {
-    id: '2',
-    creator: '0x4b8e...1a5f',
-    entryFee: 0.05,
-    token: 'BTC',
-    duration: 30,
-    status: 'waiting',
-    createdAt: '5 min ago'
-  },
-  {
-    id: '3',
-    creator: '0x9c2d...7e4b',
-    entryFee: 0.2,
-    token: 'SOL',
-    duration: 10,
-    status: 'waiting',
-    createdAt: '8 min ago'
-  },
-  {
-    id: '4',
-    creator: '0x1f6a...3c9e',
-    entryFee: 0.15,
-    token: 'ETH',
-    duration: 20,
-    status: 'waiting',
-    createdAt: '12 min ago'
-  },
-  {
-    id: '5',
-    creator: '0x5d3b...8f2a',
-    entryFee: 0.5,
-    token: 'BTC',
-    duration: 15,
-    status: 'active',
-    createdAt: '1 min ago'
-  },
-]
-
 export default function LobbyPage() {
+  const [duels, setDuels] = useState<Duel[]>([])
+  const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'waiting' | 'active'>('waiting')
   const [selectedToken, setSelectedToken] = useState<string>('all')
 
-  const filteredDuels = MOCK_DUELS.filter(duel => {
+  // Load duels from Supabase
+  useEffect(() => {
+    loadDuels()
+  }, [])
+
+  const loadDuels = async () => {
+    setLoading(true)
+    try {
+      const data = await getAllDuels()
+
+      // Transform Supabase data to component format
+      const transformedDuels: Duel[] = data.map((duel: SupabaseDuel) => ({
+        id: duel.id,
+        creator: duel.creator_address,
+        entryFee: Number(duel.entry_fee),
+        tradingToken: duel.trading_token,
+        duration: duel.duration,
+        status: duel.status as 'waiting' | 'active' | 'completed',
+        createdAt: formatTimeAgo(duel.created_at),
+        prizePool: Number(duel.prize_pool)
+      }))
+
+      setDuels(transformedDuels)
+    } catch (error) {
+      console.error('Error loading duels:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const formatTimeAgo = (timestamp: string): string => {
+    const now = new Date()
+    const created = new Date(timestamp)
+    const diffMs = now.getTime() - created.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+
+    if (diffMins < 1) return 'just now'
+    if (diffMins < 60) return `${diffMins} min ago`
+    const diffHours = Math.floor(diffMins / 60)
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
+    const diffDays = Math.floor(diffHours / 24)
+    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
+  }
+
+  const filteredDuels = duels.filter(duel => {
     if (filter !== 'all' && duel.status !== filter) return false
-    if (selectedToken !== 'all' && duel.token !== selectedToken) return false
+    if (selectedToken !== 'all' && duel.tradingToken !== selectedToken) return false
     return true
   })
 
@@ -76,13 +77,13 @@ export default function LobbyPage() {
     <div className="min-h-screen bg-primary-bg">
       <Navbar />
 
-      <main className="pt-24 px-4 sm:px-6 lg:px-8 pb-16">
+      <main className="pt-32 px-4 sm:px-6 lg:px-8 pb-16">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
               <div>
-                <h1 className="retro-heading text-4xl md:text-5xl mb-2">
+                <h1 className="retro-heading text-2xl md:text-3xl mb-2">
                   DUEL LOBBY
                 </h1>
                 <p className="text-text-muted">
@@ -99,24 +100,28 @@ export default function LobbyPage() {
             <div className="card-retro">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                 <div>
-                  <div className="text-2xl font-bold text-retro-coral">
-                    {MOCK_DUELS.filter(d => d.status === 'waiting').length}
+                  <div className="text-2xl font-bold text-retro-cherry">
+                    {duels.filter(d => d.status === 'waiting').length}
                   </div>
                   <div className="text-sm text-text-muted uppercase">Open Duels</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-retro-blue">
-                    {MOCK_DUELS.filter(d => d.status === 'active').length}
+                  <div className="text-2xl font-bold text-retro-cherry-light">
+                    {duels.filter(d => d.status === 'active').length}
                   </div>
                   <div className="text-sm text-text-muted uppercase">Active Now</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-retro-green">247</div>
-                  <div className="text-sm text-text-muted uppercase">Online</div>
+                  <div className="text-2xl font-bold text-accent-light-gray">
+                    {duels.length}
+                  </div>
+                  <div className="text-sm text-text-muted uppercase">Total Duels</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-retro-blue">$12.4K</div>
-                  <div className="text-sm text-text-muted uppercase">Prize Pool</div>
+                  <div className="text-2xl font-bold text-retro-cherry">
+                    {duels.reduce((sum, d) => sum + d.prizePool, 0).toFixed(0)} CSPR
+                  </div>
+                  <div className="text-sm text-text-muted uppercase">Total Prize Pool</div>
                 </div>
               </div>
             </div>
@@ -124,7 +129,7 @@ export default function LobbyPage() {
 
           {/* Filters */}
           <div className="mb-8">
-            <div className="card bg-win95-light p-4">
+            <div className="card bg-surface p-4">
               <div className="flex flex-col md:flex-row gap-4">
                 {/* Status Filter */}
                 <div className="flex-1">
@@ -134,30 +139,30 @@ export default function LobbyPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => setFilter('waiting')}
-                      className={`px-4 py-2 border-[3px] border-border font-bold text-sm uppercase transition-all ${
+                      className={`px-4 py-2 border-2 border-accent-gray font-bold text-sm uppercase transition-all rounded-lg ${
                         filter === 'waiting'
-                          ? 'bg-retro-coral text-text-light shadow-retro'
-                          : 'bg-surface text-text-primary hover:bg-retro-tan'
+                          ? 'bg-retro-cherry text-text-primary shadow-retro border-retro-cherry-light'
+                          : 'bg-surface-light text-text-primary hover:bg-accent-gray'
                       }`}
                     >
                       Waiting
                     </button>
                     <button
                       onClick={() => setFilter('active')}
-                      className={`px-4 py-2 border-[3px] border-border font-bold text-sm uppercase transition-all ${
+                      className={`px-4 py-2 border-2 border-accent-gray font-bold text-sm uppercase transition-all rounded-lg ${
                         filter === 'active'
-                          ? 'bg-retro-coral text-text-light shadow-retro'
-                          : 'bg-surface text-text-primary hover:bg-retro-tan'
+                          ? 'bg-retro-cherry text-text-primary shadow-retro border-retro-cherry-light'
+                          : 'bg-surface-light text-text-primary hover:bg-accent-gray'
                       }`}
                     >
                       Active
                     </button>
                     <button
                       onClick={() => setFilter('all')}
-                      className={`px-4 py-2 border-[3px] border-border font-bold text-sm uppercase transition-all ${
+                      className={`px-4 py-2 border-2 border-accent-gray font-bold text-sm uppercase transition-all rounded-lg ${
                         filter === 'all'
-                          ? 'bg-retro-coral text-text-light shadow-retro'
-                          : 'bg-surface text-text-primary hover:bg-retro-tan'
+                          ? 'bg-retro-cherry text-text-primary shadow-retro border-retro-cherry-light'
+                          : 'bg-surface-light text-text-primary hover:bg-accent-gray'
                       }`}
                     >
                       All
@@ -173,43 +178,63 @@ export default function LobbyPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => setSelectedToken('all')}
-                      className={`px-4 py-2 border-[3px] border-border font-bold text-sm uppercase transition-all ${
+                      className={`px-4 py-2 border-2 border-accent-gray font-bold text-sm uppercase transition-all rounded-lg ${
                         selectedToken === 'all'
-                          ? 'bg-retro-blue text-text-light shadow-retro'
-                          : 'bg-surface text-text-primary hover:bg-retro-tan'
+                          ? 'bg-retro-cherry text-text-primary shadow-retro border-retro-cherry-light'
+                          : 'bg-surface-light text-text-primary hover:bg-accent-gray'
                       }`}
                     >
                       All
                     </button>
                     <button
                       onClick={() => setSelectedToken('ETH')}
-                      className={`px-4 py-2 border-[3px] border-border font-bold text-sm uppercase transition-all ${
+                      className={`px-4 py-2 border-2 border-accent-gray font-bold text-sm uppercase transition-all rounded-lg ${
                         selectedToken === 'ETH'
-                          ? 'bg-retro-blue text-text-light shadow-retro'
-                          : 'bg-surface text-text-primary hover:bg-retro-tan'
+                          ? 'bg-retro-cherry text-text-primary shadow-retro border-retro-cherry-light'
+                          : 'bg-surface-light text-text-primary hover:bg-accent-gray'
                       }`}
                     >
                       ETH
                     </button>
                     <button
                       onClick={() => setSelectedToken('BTC')}
-                      className={`px-4 py-2 border-[3px] border-border font-bold text-sm uppercase transition-all ${
+                      className={`px-4 py-2 border-2 border-accent-gray font-bold text-sm uppercase transition-all rounded-lg ${
                         selectedToken === 'BTC'
-                          ? 'bg-retro-blue text-text-light shadow-retro'
-                          : 'bg-surface text-text-primary hover:bg-retro-tan'
+                          ? 'bg-retro-cherry text-text-primary shadow-retro border-retro-cherry-light'
+                          : 'bg-surface-light text-text-primary hover:bg-accent-gray'
                       }`}
                     >
                       BTC
                     </button>
                     <button
                       onClick={() => setSelectedToken('SOL')}
-                      className={`px-4 py-2 border-[3px] border-border font-bold text-sm uppercase transition-all ${
+                      className={`px-4 py-2 border-2 border-accent-gray font-bold text-sm uppercase transition-all rounded-lg ${
                         selectedToken === 'SOL'
-                          ? 'bg-retro-blue text-text-light shadow-retro'
-                          : 'bg-surface text-text-primary hover:bg-retro-tan'
+                          ? 'bg-retro-cherry text-text-primary shadow-retro border-retro-cherry-light'
+                          : 'bg-surface-light text-text-primary hover:bg-accent-gray'
                       }`}
                     >
                       SOL
+                    </button>
+                    <button
+                      onClick={() => setSelectedToken('NFT-Dragons')}
+                      className={`px-4 py-2 border-2 border-accent-gray font-bold text-sm uppercase transition-all rounded-lg ${
+                        selectedToken === 'NFT-Dragons'
+                          ? 'bg-retro-cherry text-text-primary shadow-retro border-retro-cherry-light'
+                          : 'bg-surface-light text-text-primary hover:bg-accent-gray'
+                      }`}
+                    >
+                      NFT Dragons
+                    </button>
+                    <button
+                      onClick={() => setSelectedToken('NFT-Apes')}
+                      className={`px-4 py-2 border-2 border-accent-gray font-bold text-sm uppercase transition-all rounded-lg ${
+                        selectedToken === 'NFT-Apes'
+                          ? 'bg-retro-cherry text-text-primary shadow-retro border-retro-cherry-light'
+                          : 'bg-surface-light text-text-primary hover:bg-accent-gray'
+                      }`}
+                    >
+                      NFT Apes
                     </button>
                   </div>
                 </div>
@@ -217,17 +242,26 @@ export default function LobbyPage() {
             </div>
           </div>
 
+          {/* Loading State */}
+          {loading && (
+            <div className="text-center py-16">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-retro-cherry"></div>
+              <p className="mt-4 text-text-muted">Loading duels...</p>
+            </div>
+          )}
+
           {/* Duels Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredDuels.map((duel) => (
+          {!loading && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredDuels.map((duel) => (
               <div key={duel.id} className="card-retro hover:scale-105 transition-transform">
                 {/* Status Badge */}
                 <div className="mb-4 flex justify-between items-start">
                   <div
                     className={`retro-badge ${
                       duel.status === 'waiting'
-                        ? 'bg-retro-green'
-                        : 'bg-retro-coral'
+                        ? 'bg-accent-light-gray border-accent-gray'
+                        : 'bg-retro-cherry border-retro-cherry-light'
                     }`}
                   >
                     {duel.status === 'waiting' ? 'OPEN' : 'LIVE'}
@@ -246,15 +280,15 @@ export default function LobbyPage() {
 
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-text-muted uppercase">Entry Fee</span>
-                    <span className="text-2xl font-display text-retro-coral">
-                      {duel.entryFee} ETH
+                    <span className="text-2xl font-retro text-retro-cherry">
+                      {duel.entryFee} CSPR
                     </span>
                   </div>
 
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-text-muted uppercase">Token</span>
-                    <span className="retro-badge bg-retro-blue text-text-light">
-                      {duel.token}
+                    <span className="text-sm text-text-muted uppercase">Trading</span>
+                    <span className="retro-badge bg-accent-light-gray text-text-primary border-2 border-accent-gray">
+                      {duel.tradingToken}
                     </span>
                   </div>
 
@@ -267,10 +301,10 @@ export default function LobbyPage() {
                 </div>
 
                 {/* Prize Pool */}
-                <div className="bg-retro-yellow border-[3px] border-border p-3 mb-4 shadow-retro-inset">
+                <div className="bg-accent-gray border-2 border-accent-light-gray p-3 mb-4 shadow-retro-inset rounded-lg">
                   <div className="text-xs text-text-muted uppercase mb-1">Prize Pool</div>
-                  <div className="text-xl font-display text-text-primary">
-                    {(duel.entryFee * 2).toFixed(2)} ETH
+                  <div className="text-xl font-retro text-text-primary">
+                    {(duel.entryFee * 2).toFixed(0)} CSPR
                   </div>
                 </div>
 
@@ -291,18 +325,19 @@ export default function LobbyPage() {
                   </Link>
                 )}
               </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           {/* Empty State */}
-          {filteredDuels.length === 0 && (
+          {!loading && filteredDuels.length === 0 && (
             <div className="text-center py-16">
               <div className="retro-frame inline-block p-8">
                 <div className="w-24 h-24 mx-auto mb-4 opacity-30">
                   <svg viewBox="0 0 100 100" className="w-full h-full">
-                    <rect x="20" y="30" width="60" height="40" rx="5" className="fill-none stroke-border" strokeWidth="4" />
-                    <circle cx="40" cy="50" r="8" className="fill-border" />
-                    <circle cx="60" cy="50" r="8" className="fill-border" />
+                    <rect x="20" y="30" width="60" height="40" rx="5" className="fill-none stroke-retro-charcoal" strokeWidth="4" />
+                    <circle cx="40" cy="50" r="8" className="fill-retro-charcoal" />
+                    <circle cx="60" cy="50" r="8" className="fill-retro-charcoal" />
                   </svg>
                 </div>
                 <h3 className="retro-heading text-2xl mb-2">NO DUELS FOUND</h3>

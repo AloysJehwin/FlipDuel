@@ -44,7 +44,7 @@ export default function LiveSidebar() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Activity className="w-5 h-5 text-neon-green" />
-            <h3 className="font-bold text-text-primary">Live Duels</h3>
+            <h3 className="font-bold text-retro-charcoal">Live Duels</h3>
           </div>
           <Badge variant="success">
             <span className="flex items-center gap-1">
@@ -62,16 +62,16 @@ export default function LiveSidebar() {
                 'p-3 rounded-lg border transition-all duration-200 cursor-pointer',
                 duel.status === 'active'
                   ? 'bg-surface-light border-neon-green/30 hover:border-neon-green/60'
-                  : 'bg-surface-light/50 border-border/50 hover:border-border'
+                  : 'bg-surface-light/50 border-retro-charcoal/50 hover:border-retro-charcoal'
               )}
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <span className="text-sm font-medium text-text-primary truncate">
+                  <span className="text-sm font-medium text-retro-charcoal truncate">
                     {duel.player1}
                   </span>
                   <span className="text-xs text-text-muted">vs</span>
-                  <span className="text-sm font-medium text-text-primary truncate">
+                  <span className="text-sm font-medium text-retro-charcoal truncate">
                     {duel.player2}
                   </span>
                 </div>
@@ -99,7 +99,7 @@ export default function LiveSidebar() {
       <div className="card">
         <div className="flex items-center gap-2 mb-4">
           <TrendingUp className="w-5 h-5 text-neon-cyan" />
-          <h3 className="font-bold text-text-primary">Recent Wins</h3>
+          <h3 className="font-bold text-retro-charcoal">Recent Wins</h3>
         </div>
         
         <div className="space-y-2">
@@ -114,7 +114,7 @@ export default function LiveSidebar() {
                   <Trophy className="w-3 h-3 text-neon-green" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-text-primary truncate">
+                  <p className="text-sm font-medium text-retro-charcoal truncate">
                     {win.winner}
                   </p>
                   <div className="flex items-center gap-1 text-xs text-text-muted">
@@ -133,11 +133,11 @@ export default function LiveSidebar() {
       
       {/* Stats Card */}
       <div className="card bg-gradient-to-br from-surface to-surface-light">
-        <h3 className="font-bold text-text-primary mb-4">24h Stats</h3>
+        <h3 className="font-bold text-retro-charcoal mb-4">24h Stats</h3>
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-sm text-text-muted">Total Duels</span>
-            <span className="text-lg font-bold text-text-primary">1,234</span>
+            <span className="text-lg font-bold text-retro-charcoal">1,234</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-text-muted">Total Volume</span>
@@ -145,7 +145,7 @@ export default function LiveSidebar() {
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-text-muted">Active Players</span>
-            <span className="text-lg font-bold text-text-primary">567</span>
+            <span className="text-lg font-bold text-retro-charcoal">567</span>
           </div>
         </div>
       </div>
