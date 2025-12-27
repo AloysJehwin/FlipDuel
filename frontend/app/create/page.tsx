@@ -115,7 +115,7 @@ export default function CreateDuelPage() {
                       type="number"
                       step="0.01"
                       min="0.01"
-                      max={walletBalance}
+                      max={walletBalance || undefined}
                       value={customEntry}
                       onChange={(e) => {
                         setCustomEntry(e.target.value)
