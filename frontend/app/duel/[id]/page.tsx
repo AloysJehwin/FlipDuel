@@ -113,94 +113,94 @@ export default function DuelArenaPage() {
     <div className="min-h-screen bg-primary-bg">
       <Navbar />
 
-      <main className="pt-24 px-4 sm:px-6 lg:px-8 pb-16">
+      <main className="pt-32 px-4 sm:px-6 lg:px-8 pb-16">
         <div className="max-w-7xl mx-auto">
           {/* Timer Header */}
-          <div className="retro-frame bg-retro-gradient mb-6 p-6 text-center">
-            <div className="text-sm retro-subheading text-text-light mb-2">
+          <div className="retro-frame bg-surface mb-6 p-6 text-center">
+            <div className="text-sm retro-subheading text-text-primary mb-2">
               TIME REMAINING
             </div>
-            <div className="text-6xl font-retro text-text-light mb-2 tracking-wider">
+            <div className="text-6xl font-retro text-retro-cherry mb-2 tracking-wider">
               {formatTime(timeRemaining)}
             </div>
-            <div className="text-sm text-text-light">
-              Trading ETH • Entry Fee: 0.1 ETH
+            <div className="text-sm text-text-muted">
+              Trading CSPR • Entry Fee: 0.1 CSPR
             </div>
           </div>
 
           {/* Players Comparison */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             {/* Player 1 (You) */}
-            <div className={`card-retro ${isWinning ? 'bg-retro-green' : 'bg-retro-coral'}`}>
+            <div className={`card-retro ${isWinning ? 'bg-accent-light-gray/20 border-accent-light-gray' : 'bg-retro-cherry/20 border-retro-cherry'}`}>
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <div className="retro-badge bg-retro-yellow mb-2">YOU</div>
+                  <div className="retro-badge bg-retro-cherry mb-2">YOU</div>
                   <div className="font-mono text-sm text-text-primary">
                     {player1.address}
                   </div>
                 </div>
-                <div className={`text-3xl font-display ${
-                  player1.pnlPercent >= 0 ? 'text-text-primary' : 'text-text-light'
+                <div className={`text-3xl font-retro ${
+                  player1.pnlPercent >= 0 ? 'text-accent-light-gray' : 'text-retro-cherry'
                 }`}>
                   {player1.pnlPercent > 0 ? '+' : ''}{player1.pnlPercent.toFixed(2)}%
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-surface/80 border-[3px] border-border p-3">
+                <div className="bg-surface-light border-2 border-accent-gray p-3 rounded-lg">
                   <div className="text-xs text-text-muted uppercase">Holdings</div>
-                  <div className="font-bold text-text-primary">{player1.holdings.toFixed(4)} ETH</div>
+                  <div className="font-bold text-text-primary">{player1.holdings.toFixed(4)} CSPR</div>
                 </div>
-                <div className="bg-surface/80 border-[3px] border-border p-3">
+                <div className="bg-surface-light border-2 border-accent-gray p-3 rounded-lg">
                   <div className="text-xs text-text-muted uppercase">Cash</div>
-                  <div className="font-bold text-text-primary">{player1.cash.toFixed(4)} ETH</div>
+                  <div className="font-bold text-text-primary">{player1.cash.toFixed(4)} CSPR</div>
                 </div>
-                <div className="bg-surface/80 border-[3px] border-border p-3">
+                <div className="bg-surface-light border-2 border-accent-gray p-3 rounded-lg">
                   <div className="text-xs text-text-muted uppercase">Total Value</div>
-                  <div className="font-bold text-retro-blue">{player1.totalValue.toFixed(4)} ETH</div>
+                  <div className="font-bold text-retro-cherry">{player1.totalValue.toFixed(4)} CSPR</div>
                 </div>
-                <div className="bg-surface/80 border-[3px] border-border p-3">
+                <div className="bg-surface-light border-2 border-accent-gray p-3 rounded-lg">
                   <div className="text-xs text-text-muted uppercase">P&L</div>
-                  <div className={`font-bold ${player1.pnl >= 0 ? 'text-retro-green' : 'text-retro-coral'}`}>
-                    {player1.pnl > 0 ? '+' : ''}{player1.pnl.toFixed(4)} ETH
+                  <div className={`font-bold ${player1.pnl >= 0 ? 'text-accent-light-gray' : 'text-retro-cherry'}`}>
+                    {player1.pnl > 0 ? '+' : ''}{player1.pnl.toFixed(4)} CSPR
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Player 2 (Opponent) */}
-            <div className={`card-retro ${!isWinning ? 'bg-retro-green' : 'bg-retro-coral'}`}>
+            <div className={`card-retro ${!isWinning ? 'bg-accent-light-gray/20 border-accent-light-gray' : 'bg-retro-cherry/20 border-retro-cherry'}`}>
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <div className="retro-badge bg-retro-blue text-text-light mb-2">OPPONENT</div>
+                  <div className="retro-badge bg-accent-gray text-text-primary mb-2">OPPONENT</div>
                   <div className="font-mono text-sm text-text-primary">
                     {player2.address}
                   </div>
                 </div>
-                <div className={`text-3xl font-display ${
-                  player2.pnlPercent >= 0 ? 'text-text-primary' : 'text-text-light'
+                <div className={`text-3xl font-retro ${
+                  player2.pnlPercent >= 0 ? 'text-accent-light-gray' : 'text-retro-cherry'
                 }`}>
                   {player2.pnlPercent > 0 ? '+' : ''}{player2.pnlPercent.toFixed(2)}%
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-surface/80 border-[3px] border-border p-3">
+                <div className="bg-surface-light border-2 border-accent-gray p-3 rounded-lg">
                   <div className="text-xs text-text-muted uppercase">Holdings</div>
-                  <div className="font-bold text-text-primary">{player2.holdings.toFixed(4)} ETH</div>
+                  <div className="font-bold text-text-primary">{player2.holdings.toFixed(4)} CSPR</div>
                 </div>
-                <div className="bg-surface/80 border-[3px] border-border p-3">
+                <div className="bg-surface-light border-2 border-accent-gray p-3 rounded-lg">
                   <div className="text-xs text-text-muted uppercase">Cash</div>
-                  <div className="font-bold text-text-primary">{player2.cash.toFixed(4)} ETH</div>
+                  <div className="font-bold text-text-primary">{player2.cash.toFixed(4)} CSPR</div>
                 </div>
-                <div className="bg-surface/80 border-[3px] border-border p-3">
+                <div className="bg-surface-light border-2 border-accent-gray p-3 rounded-lg">
                   <div className="text-xs text-text-muted uppercase">Total Value</div>
-                  <div className="font-bold text-retro-blue">{player2.totalValue.toFixed(4)} ETH</div>
+                  <div className="font-bold text-retro-cherry">{player2.totalValue.toFixed(4)} CSPR</div>
                 </div>
-                <div className="bg-surface/80 border-[3px] border-border p-3">
+                <div className="bg-surface-light border-2 border-accent-gray p-3 rounded-lg">
                   <div className="text-xs text-text-muted uppercase">P&L</div>
-                  <div className={`font-bold ${player2.pnl >= 0 ? 'text-retro-green' : 'text-retro-coral'}`}>
-                    {player2.pnl > 0 ? '+' : ''}{player2.pnl.toFixed(4)} ETH
+                  <div className={`font-bold ${player2.pnl >= 0 ? 'text-accent-light-gray' : 'text-retro-cherry'}`}>
+                    {player2.pnl > 0 ? '+' : ''}{player2.pnl.toFixed(4)} CSPR
                   </div>
                 </div>
               </div>
@@ -211,15 +211,15 @@ export default function DuelArenaPage() {
             {/* Price Chart Area */}
             <div className="lg:col-span-2 space-y-6">
               {/* Current Price */}
-              <div className="card-retro bg-retro-blue text-text-light">
+              <div className="card-retro bg-retro-cherry/20 border-retro-cherry text-text-primary">
                 <div className="flex justify-between items-center">
                   <div>
-                    <div className="text-sm uppercase mb-1">ETH Current Price</div>
-                    <div className="text-4xl font-display">${currentPrice.toFixed(2)}</div>
+                    <div className="text-sm uppercase mb-1">CSPR Current Price</div>
+                    <div className="text-4xl font-retro text-retro-cherry">${currentPrice.toFixed(2)}</div>
                   </div>
                   <div className="text-right">
                     <div className="text-xs uppercase mb-1">24h Change</div>
-                    <div className="text-xl font-bold text-retro-green">+2.34%</div>
+                    <div className="text-xl font-bold text-accent-light-gray">+2.34%</div>
                   </div>
                 </div>
               </div>
@@ -227,14 +227,14 @@ export default function DuelArenaPage() {
               {/* Mock Chart */}
               <div className="card-retro">
                 <div className="retro-subheading mb-4">PRICE CHART</div>
-                <div className="bg-win95-light border-4 border-border p-8 h-64 flex items-center justify-center">
+                <div className="bg-surface border-2 border-accent-gray p-8 h-64 flex items-center justify-center rounded-lg">
                   <div className="text-center text-text-muted">
                     <div className="w-16 h-16 mx-auto mb-4 opacity-30">
                       <svg viewBox="0 0 100 100" className="w-full h-full">
-                        <polyline points="10,90 30,60 50,70 70,30 90,50" fill="none" stroke="currentColor" strokeWidth="4" className="text-text-primary" />
-                        <circle cx="30" cy="60" r="4" className="fill-border" />
-                        <circle cx="50" cy="70" r="4" className="fill-border" />
-                        <circle cx="70" cy="30" r="4" className="fill-border" />
+                        <polyline points="10,90 30,60 50,70 70,30 90,50" fill="none" stroke="currentColor" strokeWidth="4" className="text-retro-cherry" />
+                        <circle cx="30" cy="60" r="4" className="fill-retro-cherry" />
+                        <circle cx="50" cy="70" r="4" className="fill-retro-cherry" />
+                        <circle cx="70" cy="30" r="4" className="fill-retro-cherry" />
                       </svg>
                     </div>
                     <div className="text-sm">Live price chart will display here</div>
@@ -253,12 +253,12 @@ export default function DuelArenaPage() {
                     </div>
                   ) : (
                     player1.trades.map((trade, idx) => (
-                      <div key={idx} className="flex justify-between items-center bg-surface border-2 border-border p-2">
-                        <div className={`retro-badge ${trade.type === 'BUY' ? 'bg-retro-green' : 'bg-retro-coral'}`}>
+                      <div key={idx} className="flex justify-between items-center bg-surface border-2 border-accent-gray p-2 rounded-lg">
+                        <div className={`retro-badge ${trade.type === 'BUY' ? 'bg-accent-light-gray' : 'bg-retro-cherry'}`}>
                           {trade.type}
                         </div>
-                        <div className="font-mono text-sm">{trade.amount.toFixed(4)} ETH</div>
-                        <div className="font-mono text-sm">${trade.price.toFixed(2)}</div>
+                        <div className="font-mono text-sm text-text-primary">{trade.amount.toFixed(4)} CSPR</div>
+                        <div className="font-mono text-sm text-text-primary">${trade.price.toFixed(2)}</div>
                         <div className="text-xs text-text-muted">{trade.timestamp}</div>
                       </div>
                     ))
@@ -276,7 +276,7 @@ export default function DuelArenaPage() {
 
                   <div className="mb-4">
                     <label className="text-xs text-text-muted uppercase mb-2 block">
-                      Amount (ETH)
+                      Amount (CSPR)
                     </label>
                     <input
                       type="number"
@@ -284,7 +284,7 @@ export default function DuelArenaPage() {
                       value={tradeAmount}
                       onChange={(e) => setTradeAmount(e.target.value)}
                       placeholder="0.0000"
-                      className="w-full px-4 py-3 border-4 border-border bg-surface text-text-primary font-bold text-lg focus:outline-none focus:border-retro-blue"
+                      className="w-full px-4 py-3 border-2 border-accent-gray bg-surface text-text-primary font-bold text-lg focus:outline-none focus:border-retro-cherry rounded-lg"
                     />
                   </div>
 
@@ -306,18 +306,18 @@ export default function DuelArenaPage() {
                   </div>
 
                   <div className="text-xs text-text-muted">
-                    Available: {player1.holdings.toFixed(4)} ETH
+                    Available: {player1.holdings.toFixed(4)} CSPR
                   </div>
                 </div>
 
                 {/* Status Indicator */}
                 <div className={`retro-frame p-4 text-center ${
-                  isWinning ? 'bg-retro-green' : 'bg-retro-coral'
+                  isWinning ? 'bg-accent-light-gray/20 border-accent-light-gray' : 'bg-retro-cherry/20 border-retro-cherry'
                 }`}>
                   <div className="text-sm uppercase mb-2 text-text-primary font-bold">
                     {isWinning ? 'YOU ARE WINNING!' : 'YOU ARE LOSING'}
                   </div>
-                  <div className="text-xs text-text-primary">
+                  <div className="text-xs text-text-muted">
                     {isWinning
                       ? 'Keep up the great trading!'
                       : 'Make smart moves to turn it around!'}
@@ -325,7 +325,7 @@ export default function DuelArenaPage() {
                 </div>
 
                 {/* Quick Stats */}
-                <div className="card bg-win95-light">
+                <div className="card bg-surface">
                   <div className="retro-subheading text-sm mb-3">QUICK STATS</div>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
@@ -337,14 +337,14 @@ export default function DuelArenaPage() {
                     <div className="flex justify-between">
                       <span className="text-text-muted">Lead/Deficit</span>
                       <span className={`font-bold ${
-                        player1.pnlPercent > player2.pnlPercent ? 'text-retro-green' : 'text-retro-coral'
+                        player1.pnlPercent > player2.pnlPercent ? 'text-accent-light-gray' : 'text-retro-cherry'
                       }`}>
                         {Math.abs(player1.pnlPercent - player2.pnlPercent).toFixed(2)}%
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-text-muted">Prize Pool</span>
-                      <span className="font-bold text-retro-blue">0.2 ETH</span>
+                      <span className="font-bold text-retro-cherry">0.2 CSPR</span>
                     </div>
                   </div>
                 </div>

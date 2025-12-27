@@ -46,7 +46,7 @@ export default function WagerPanel({ onCreateDuel, maxBalance = 10000 }: WagerPa
       <div className="space-y-6">
         {/* Header */}
         <div className="text-center">
-          <h3 className="text-xl font-bold text-text-primary mb-1">Set Your Wager</h3>
+          <h3 className="text-xl font-bold text-retro-charcoal mb-1">Set Your Wager</h3>
           <p className="text-sm text-text-muted">Choose your battle amount</p>
         </div>
         
@@ -62,9 +62,9 @@ export default function WagerPanel({ onCreateDuel, maxBalance = 10000 }: WagerPa
             placeholder="0.00"
             className={clsx(
               'w-full pl-12 pr-16 py-4 bg-surface-light border-2 rounded-lg',
-              'text-2xl font-bold text-center text-text-primary',
+              'text-2xl font-bold text-center text-retro-charcoal',
               'focus:outline-none focus:border-neon-green transition-colors',
-              isValidAmount() ? 'border-border' : 'border-red-500/50'
+              isValidAmount() ? 'border-retro-charcoal' : 'border-red-500/50'
             )}
           />
           <div className="absolute right-4 top-1/2 -translate-y-1/2">
@@ -75,7 +75,7 @@ export default function WagerPanel({ onCreateDuel, maxBalance = 10000 }: WagerPa
         {/* Balance Info */}
         <div className="flex items-center justify-between text-sm">
           <span className="text-text-muted">Available Balance</span>
-          <span className="font-semibold text-text-primary">
+          <span className="font-semibold text-retro-charcoal">
             {maxBalance.toFixed(2)} CSPR
           </span>
         </div>
@@ -90,7 +90,7 @@ export default function WagerPanel({ onCreateDuel, maxBalance = 10000 }: WagerPa
                 'py-3 rounded-lg font-semibold text-sm transition-all duration-200',
                 wagerAmount === amount.toString()
                   ? 'bg-neon-green/20 border-2 border-neon-green text-neon-green'
-                  : 'bg-surface-light border border-border text-text-primary hover:border-neon-green hover:text-neon-green'
+                  : 'bg-surface-light border border-retro-charcoal text-retro-charcoal hover:border-neon-green hover:text-neon-green'
               )}
             >
               {amount}
@@ -101,7 +101,7 @@ export default function WagerPanel({ onCreateDuel, maxBalance = 10000 }: WagerPa
         {/* MAX Button */}
         <button
           onClick={handleMaxClick}
-          className="w-full py-3 bg-surface-light border border-border rounded-lg font-semibold text-sm text-text-primary hover:border-neon-green hover:text-neon-green transition-all duration-200"
+          className="w-full py-3 bg-surface-light border border-retro-charcoal rounded-lg font-semibold text-sm text-retro-charcoal hover:border-neon-green hover:text-neon-green transition-all duration-200"
         >
           MAX
         </button>

@@ -12,7 +12,7 @@ export default function Card({ children, className, hover = false, glow = false 
   return (
     <div
       className={clsx(
-        'bg-surface border border-border rounded-xl p-6 transition-all duration-300',
+        'bg-surface border border-retro-charcoal rounded-xl p-6 transition-all duration-300',
         hover && 'hover:border-neon-green/50 hover:shadow-glow-sm cursor-pointer',
         glow && 'shadow-glow-md',
         className
