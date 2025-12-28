@@ -4,6 +4,8 @@ const nextConfig = {
   images: {
     domains: [],
   },
+  // Empty turbopack config to silence webpack migration warning
+  turbopack: {},
 }
 
 module.exports = nextConfig

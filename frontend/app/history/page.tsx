@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import { casperWallet } from '@/lib/casper-wallet'
+import { getUserDuelHistory, getDuelParticipants } from '@/lib/duel-api'
+import type { Duel, DuelParticipant } from '@/lib/supabase'
 
 interface HistoricalDuel {
   id: string
@@ -16,86 +18,15 @@ interface HistoricalDuel {
   yourPnlPercent: number
   opponentPnl: number
   opponentPnlPercent: number
-  result: 'won' | 'lost'
+  result: 'won' | 'lost' | 'pending'
   prize: number
 }
-
-const MOCK_HISTORY: HistoricalDuel[] = [
-  {
-    id: '1',
-    date: '2024-01-15 14:30',
-    opponent: '0x4b8e...1a5f',
-    token: 'CSPR',
-    entryFee: 100,
-    duration: 15,
-    yourPnl: 360,
-    yourPnlPercent: 17.14,
-    opponentPnl: -110,
-    opponentPnlPercent: -5.24,
-    result: 'won',
-    prize: 200,
-  },
-  {
-    id: '2',
-    date: '2024-01-15 12:00',
-    opponent: '0x9c2d...7e4b',
-    token: 'CSPR',
-    entryFee: 50,
-    duration: 10,
-    yourPnl: -20,
-    yourPnlPercent: -4.12,
-    opponentPnl: 50,
-    opponentPnlPercent: 10.5,
-    result: 'lost',
-    prize: 0,
-  },
-  {
-    id: '3',
-    date: '2024-01-14 18:45',
-    opponent: '0x1f6a...3c9e',
-    token: 'CSPR',
-    entryFee: 200,
-    duration: 20,
-    yourPnl: 120,
-    yourPnlPercent: 6.15,
-    opponentPnl: 80,
-    opponentPnlPercent: 4.02,
-    result: 'won',
-    prize: 400,
-  },
-  {
-    id: '4',
-    date: '2024-01-14 16:20',
-    opponent: '0x5d3b...8f2a',
-    token: 'CSPR',
-    entryFee: 150,
-    duration: 30,
-    yourPnl: 50,
-    yourPnlPercent: 3.33,
-    opponentPnl: -80,
-    opponentPnlPercent: -5.33,
-    result: 'won',
-    prize: 300,
-  },
-  {
-    id: '5',
-    date: '2024-01-13 20:10',
-    opponent: '0x7e2f...4d1c',
-    token: 'CSPR',
-    entryFee: 250,
-    duration: 15,
-    yourPnl: -150,
-    yourPnlPercent: -12.0,
-    opponentPnl: 180,
-    opponentPnlPercent: 14.4,
-    result: 'lost',
-    prize: 0,
-  },
-]
 
 export default function HistoryPage() {
   const [filter, setFilter] = useState<'all' | 'won' | 'lost'>('all')
   const [userWalletAddress, setUserWalletAddress] = useState<string | null>(null)
+  const [history, setHistory] = useState<HistoricalDuel[]>([])
+  const [loading, setLoading] = useState(true)
 
   // Get connected wallet address from Casper wallet
   useEffect(() => {
@@ -112,17 +43,83 @@ export default function HistoryPage() {
     loadWalletAddress()
   }, [])
 
-  const filteredHistory = MOCK_HISTORY.filter(duel => {
+  // Fetch user's duel history
+  useEffect(() => {
+    const fetchHistory = async () => {
+      if (!userWalletAddress) {
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        const userHistory = await getUserDuelHistory(userWalletAddress)
+
+        // Process the history to get opponent information
+        const processedHistory: HistoricalDuel[] = []
+
+        for (const record of userHistory) {
+          const duel = record.duels as Duel
+
+          // Skip if duel is not completed
+          if (duel.status !== 'completed') continue
+
+          // Get all participants to find the opponent
+          const participants = await getDuelParticipants(duel.id)
+          const opponent = participants.find(p => p.wallet_address !== userWalletAddress)
+
+          if (!opponent) continue
+
+          // Determine result
+          let result: 'won' | 'lost' | 'pending' = 'pending'
+          if (duel.winner_address) {
+            result = duel.winner_address === userWalletAddress ? 'won' : 'lost'
+          }
+
+          processedHistory.push({
+            id: duel.id,
+            date: new Date(duel.ended_at || duel.created_at).toLocaleString('en-US', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit'
+            }),
+            opponent: opponent.wallet_address,
+            token: duel.trading_token,
+            entryFee: duel.entry_fee,
+            duration: duel.duration,
+            yourPnl: record.pnl || 0,
+            yourPnlPercent: record.pnl_percent || 0,
+            opponentPnl: opponent.pnl || 0,
+            opponentPnlPercent: opponent.pnl_percent || 0,
+            result,
+            prize: result === 'won' ? duel.prize_pool : 0
+          })
+        }
+
+        setHistory(processedHistory)
+      } catch (error) {
+        console.error('Error fetching history:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchHistory()
+  }, [userWalletAddress])
+
+  const filteredHistory = history.filter(duel => {
     if (filter === 'all') return true
     return duel.result === filter
   })
 
-  const totalDuels = MOCK_HISTORY.length
-  const wins = MOCK_HISTORY.filter(d => d.result === 'won').length
-  const losses = MOCK_HISTORY.filter(d => d.result === 'lost').length
-  const winRate = ((wins / totalDuels) * 100).toFixed(1)
-  const totalEarnings = MOCK_HISTORY.reduce((sum, d) => sum + (d.result === 'won' ? d.prize : -d.entryFee), 0)
-  const totalPnl = MOCK_HISTORY.reduce((sum, d) => sum + d.yourPnl, 0)
+  const totalDuels = history.length
+  const wins = history.filter(d => d.result === 'won').length
+  const losses = history.filter(d => d.result === 'lost').length
+  const winRate = totalDuels > 0 ? ((wins / totalDuels) * 100).toFixed(1) : '0.0'
+  const totalEarnings = history.reduce((sum, d) => sum + (d.result === 'won' ? d.prize : -d.entryFee), 0)
+  const totalPnl = history.reduce((sum, d) => sum + d.yourPnl, 0)
 
   return (
     <div className="min-h-screen bg-primary-bg">
@@ -252,87 +249,93 @@ export default function HistoryPage() {
 
           {/* History Table */}
           <div className="card-retro overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b-2 border-accent-gray">
-                  <th className="text-left py-3 px-4 retro-subheading text-sm">Date</th>
-                  <th className="text-left py-3 px-4 retro-subheading text-sm">Opponent</th>
-                  <th className="text-left py-3 px-4 retro-subheading text-sm">Token</th>
-                  <th className="text-left py-3 px-4 retro-subheading text-sm">Entry</th>
-                  <th className="text-left py-3 px-4 retro-subheading text-sm">Your P&L</th>
-                  <th className="text-left py-3 px-4 retro-subheading text-sm">Opp P&L</th>
-                  <th className="text-left py-3 px-4 retro-subheading text-sm">Result</th>
-                  <th className="text-left py-3 px-4 retro-subheading text-sm">Prize</th>
-                  <th className="text-left py-3 px-4 retro-subheading text-sm">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredHistory.map((duel) => (
-                  <tr key={duel.id} className="border-b border-accent-gray/20 hover:bg-accent-gray/20 transition-colors">
-                    <td className="py-3 px-4 text-sm text-text-muted">
-                      {duel.date}
-                    </td>
-                    <td className="py-3 px-4 font-mono text-sm">
-                      {duel.opponent}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="retro-badge bg-retro-cherry text-text-primary text-xs">
-                        {duel.token}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 font-mono text-sm">
-                      {duel.entryFee} CSPR
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className={`font-bold ${
-                        duel.yourPnl >= 0 ? 'text-accent-light-gray' : 'text-retro-cherry'
-                      }`}>
-                        {duel.yourPnl > 0 ? '+' : ''}{duel.yourPnlPercent.toFixed(2)}%
-                      </div>
-                      <div className="text-xs text-text-muted">
-                        {duel.yourPnl > 0 ? '+' : ''}{duel.yourPnl.toFixed(4)} CSPR
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className={`font-bold ${
-                        duel.opponentPnl >= 0 ? 'text-accent-light-gray' : 'text-retro-cherry'
-                      }`}>
-                        {duel.opponentPnl > 0 ? '+' : ''}{duel.opponentPnlPercent.toFixed(2)}%
-                      </div>
-                      <div className="text-xs text-text-muted">
-                        {duel.opponentPnl > 0 ? '+' : ''}{duel.opponentPnl.toFixed(4)} CSPR
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className={`retro-badge ${
-                        duel.result === 'won' ? 'bg-accent-light-gray' : 'bg-retro-cherry'
-                      } text-text-primary`}>
-                        {duel.result === 'won' ? 'WON' : 'LOST'}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 font-bold">
-                      {duel.result === 'won' ? (
-                        <span className="text-accent-light-gray">+{duel.prize.toFixed(3)} CSPR</span>
-                      ) : (
-                        <span className="text-retro-cherry">-{duel.entryFee.toFixed(3)} CSPR</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      <Link
-                        href={`/results/${duel.id}`}
-                        className="text-retro-cherry hover:text-retro-cherry-light font-bold text-sm underline"
-                      >
-                        VIEW
-                      </Link>
-                    </td>
+            {loading ? (
+              <div className="text-center py-16">
+                <div className="text-text-muted text-lg">Loading your duel history...</div>
+              </div>
+            ) : (
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b-2 border-accent-gray">
+                    <th className="text-left py-3 px-4 retro-subheading text-sm">Date</th>
+                    <th className="text-left py-3 px-4 retro-subheading text-sm">Opponent</th>
+                    <th className="text-left py-3 px-4 retro-subheading text-sm">Token</th>
+                    <th className="text-left py-3 px-4 retro-subheading text-sm">Entry</th>
+                    <th className="text-left py-3 px-4 retro-subheading text-sm">Your P&L</th>
+                    <th className="text-left py-3 px-4 retro-subheading text-sm">Opp P&L</th>
+                    <th className="text-left py-3 px-4 retro-subheading text-sm">Result</th>
+                    <th className="text-left py-3 px-4 retro-subheading text-sm">Prize</th>
+                    <th className="text-left py-3 px-4 retro-subheading text-sm">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filteredHistory.map((duel) => (
+                    <tr key={duel.id} className="border-b border-accent-gray/20 hover:bg-accent-gray/20 transition-colors">
+                      <td className="py-3 px-4 text-sm text-text-muted">
+                        {duel.date}
+                      </td>
+                      <td className="py-3 px-4 font-mono text-sm">
+                        {casperWallet.formatAddress(duel.opponent)}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="retro-badge bg-retro-cherry text-text-primary text-xs">
+                          {duel.token}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 font-mono text-sm">
+                        {duel.entryFee} CSPR
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className={`font-bold ${
+                          duel.yourPnl >= 0 ? 'text-accent-light-gray' : 'text-retro-cherry'
+                        }`}>
+                          {duel.yourPnl > 0 ? '+' : ''}{duel.yourPnlPercent.toFixed(2)}%
+                        </div>
+                        <div className="text-xs text-text-muted">
+                          {duel.yourPnl > 0 ? '+' : ''}{duel.yourPnl.toFixed(4)} CSPR
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className={`font-bold ${
+                          duel.opponentPnl >= 0 ? 'text-accent-light-gray' : 'text-retro-cherry'
+                        }`}>
+                          {duel.opponentPnl > 0 ? '+' : ''}{duel.opponentPnlPercent.toFixed(2)}%
+                        </div>
+                        <div className="text-xs text-text-muted">
+                          {duel.opponentPnl > 0 ? '+' : ''}{duel.opponentPnl.toFixed(4)} CSPR
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={`retro-badge ${
+                          duel.result === 'won' ? 'bg-accent-light-gray' : 'bg-retro-cherry'
+                        } text-text-primary`}>
+                          {duel.result === 'won' ? 'WON' : 'LOST'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 font-bold">
+                        {duel.result === 'won' ? (
+                          <span className="text-accent-light-gray">+{duel.prize.toFixed(3)} CSPR</span>
+                        ) : (
+                          <span className="text-retro-cherry">-{duel.entryFee.toFixed(3)} CSPR</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        <Link
+                          href={`/results/${duel.id}`}
+                          className="text-retro-cherry hover:text-retro-cherry-light font-bold text-sm underline"
+                        >
+                          VIEW
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
 
           {/* Empty State */}
-          {filteredHistory.length === 0 && (
+          {!loading && filteredHistory.length === 0 && (
             <div className="text-center py-16">
               <div className="retro-frame inline-block p-8">
                 <div className="w-24 h-24 mx-auto mb-4 opacity-30">
@@ -346,12 +349,16 @@ export default function HistoryPage() {
                 <h3 className="retro-heading text-2xl mb-2">NO DUELS FOUND</h3>
                 <p className="text-text-muted mb-6">
                   {filter === 'all'
-                    ? "You haven't participated in any duels yet!"
+                    ? userWalletAddress
+                      ? "You haven't participated in any duels yet!"
+                      : "Please connect your wallet to view your duel history."
                     : `No ${filter} duels to display.`}
                 </p>
-                <Link href="/lobby" className="btn-primary">
-                  JOIN YOUR FIRST DUEL
-                </Link>
+                {userWalletAddress && (
+                  <Link href="/lobby" className="btn-primary">
+                    JOIN YOUR FIRST DUEL
+                  </Link>
+                )}
               </div>
             </div>
           )}

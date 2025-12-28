@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import { useWallet } from '@/contexts/WalletContext'
 import { createDuel } from '@/lib/duel-api'
+import { casperContracts } from '@/lib/casper-contracts'
 
 const TRADING_TOKENS = ['ETH', 'BTC', 'SOL', 'MATIC', 'AVAX', 'NFT-Dragons', 'NFT-Apes', 'NFT-Punks']
 const DURATIONS = [5, 10, 15, 20, 30, 60]
@@ -26,14 +27,29 @@ export default function CreateDuelPage() {
       return
     }
 
-    if (Number(walletBalance) < entryFee) {
-      alert(`Insufficient balance! You need ${entryFee} CSPR to create this duel.`)
-      return
-    }
-
     setIsCreating(true)
 
     try {
+      console.log('Creating duel on blockchain...')
+      console.log({
+        duration: duration * 60, // Convert minutes to seconds
+        collection: selectedToken,
+        maxParticipants: 2, // Default to 2 players
+        entryFee
+      })
+
+      // 1. Create duel on Casper blockchain
+      const deployHash = await casperContracts.createDuel(
+        walletAddress,
+        duration * 60, // Convert minutes to seconds
+        selectedToken,
+        2, // Max participants (2 players for now)
+        entryFee
+      )
+
+      console.log('✅ Deploy hash:', deployHash)
+
+      // 2. Store duel metadata in Supabase immediately (don't wait for blockchain)
       const duel = await createDuel(
         walletAddress,
         entryFee,
@@ -42,11 +58,20 @@ export default function CreateDuelPage() {
       )
 
       if (duel) {
-        console.log('✅ Duel created:', duel)
-        // Redirect to the created duel page
-        router.push(`/duel/${duel.id}`)
+        console.log('✅ Duel metadata saved:', duel)
+        alert(`Duel transaction sent!\n\nDeploy Hash: ${deployHash}\n\nNote: Due to a known issue with cross-contract calls, the transaction may fail. Check the transaction status on cspr.live`)
+
+        // Redirect to lobby instead of duel page
+        router.push(`/lobby`)
+
+        // Check status in background (don't block UI)
+        casperContracts.waitForDeploy(deployHash, 60000).then(result => {
+          console.log('✅ Deploy result:', result)
+        }).catch(error => {
+          console.error('❌ Deploy failed:', error)
+        })
       } else {
-        throw new Error('Failed to create duel')
+        throw new Error('Failed to save duel metadata')
       }
     } catch (error: any) {
       console.error('❌ Error creating duel:', error)
@@ -115,7 +140,6 @@ export default function CreateDuelPage() {
                       type="number"
                       step="0.01"
                       min="0.01"
-                      max={walletBalance || undefined}
                       value={customEntry}
                       onChange={(e) => {
                         setCustomEntry(e.target.value)
@@ -283,7 +307,7 @@ export default function CreateDuelPage() {
 
                   <button
                     onClick={handleCreateDuel}
-                    disabled={isCreating || entryFee <= 0 || !walletAddress || Number(walletBalance) < entryFee}
+                    disabled={isCreating || entryFee <= 0 || !walletAddress}
                     className="btn-primary w-full text-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isCreating ? 'CREATING DUEL...' : 'CREATE DUEL'}
@@ -292,12 +316,6 @@ export default function CreateDuelPage() {
                   {!walletAddress && (
                     <div className="mt-3 text-xs text-retro-cherry font-bold text-center">
                       Please connect your wallet first
-                    </div>
-                  )}
-
-                  {walletAddress && Number(walletBalance) < entryFee && (
-                    <div className="mt-3 text-xs text-retro-cherry font-bold text-center">
-                      Insufficient balance
                     </div>
                   )}
                 </div>

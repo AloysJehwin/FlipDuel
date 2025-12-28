@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import { getAllDuels } from '@/lib/duel-api'
 import type { Duel as SupabaseDuel } from '@/lib/supabase'
+import { casperWallet } from '@/lib/casper-wallet'
 
 interface Duel {
   id: string
@@ -273,8 +274,8 @@ export default function LobbyPage() {
                 <div className="space-y-3 mb-4">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-text-muted uppercase">Creator</span>
-                    <span className="font-mono font-bold text-text-primary">
-                      {duel.creator}
+                    <span className="font-mono font-bold text-text-primary text-sm">
+                      {casperWallet.formatAddress(duel.creator)}
                     </span>
                   </div>
 
