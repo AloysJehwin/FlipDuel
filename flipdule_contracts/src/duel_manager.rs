@@ -95,13 +95,15 @@ impl FlipDuelManager {
     }
 
     /// Create a new trading duel with staked entry fee
+    #[odra(payable)]
     pub fn create_duel(
         &mut self,
         duration_seconds: u64,
         nft_collection: String,
         max_participants: u8,
-        entry_fee: U512,
     ) -> u64 {
+        let entry_fee = self.env().attached_value();
+
         if entry_fee == U512::zero() {
             self.env().revert(Error::InvalidEntryFee);
         }
@@ -133,7 +135,7 @@ impl FlipDuelManager {
 
         // Stake entry fee in LiquidStake (without balance verification)
         let mut staking_contract = LiquidStakeContractRef::new(self.env(), staking_addr.unwrap());
-        let stcspr_minted = staking_contract.stake(validator.unwrap(), entry_fee);
+        let stcspr_minted = staking_contract.with_tokens(entry_fee).stake(validator.unwrap());
 
         let mut participants = Vec::new();
         participants.push(creator);
@@ -177,6 +179,7 @@ impl FlipDuelManager {
     }
 
     /// Join an existing duel with staked entry fee
+    #[odra(payable)]
     pub fn join_duel(&mut self, duel_id: u64) {
         let duel_opt = self.duels.get(&duel_id);
         if duel_opt.is_none() {
@@ -184,7 +187,13 @@ impl FlipDuelManager {
         }
         let mut duel = duel_opt.unwrap();
         let caller = self.env().caller();
+        let attached_amount = self.env().attached_value();
         let entry_fee = duel.entry_fee;
+
+        // Verify attached amount matches entry fee
+        if attached_amount != entry_fee {
+            self.env().revert(Error::InvalidEntryFee);
+        }
 
         if !matches!(duel.status, DuelStatus::Open) {
             self.env().revert(Error::DuelNotOpen);
@@ -201,7 +210,7 @@ impl FlipDuelManager {
 
         // Stake additional entry fee in LiquidStake (without balance verification)
         let mut staking_contract = LiquidStakeContractRef::new(self.env(), staking_addr);
-        let stcspr_minted = staking_contract.stake(validator, entry_fee);
+        let stcspr_minted = staking_contract.with_tokens(entry_fee).stake(validator);
 
         duel.participants.push(caller);
         duel.prize_pool = duel.prize_pool + entry_fee;

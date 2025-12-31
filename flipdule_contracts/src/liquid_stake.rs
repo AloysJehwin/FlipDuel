@@ -185,8 +185,10 @@ impl LiquidStake {
 
     /// Stake CSPR - ultra-simplified for cross-contract calls
     /// Simple 1:1 CSPR to stCSPR minting, no validations
-    pub fn stake(&mut self, _validator: PublicKey, cspr_amount: U512) -> U256 {
+    #[odra(payable)]
+    pub fn stake(&mut self, _validator: PublicKey) -> U256 {
         let staker = self.env().caller();
+        let cspr_amount = self.env().attached_value();
 
         // Simple 1:1 conversion
         let stcspr_to_mint = u512_to_u256(cspr_amount);
