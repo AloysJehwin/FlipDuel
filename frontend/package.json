@@ -10,12 +10,13 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.89.0",
-    "casper-js-sdk": "^5.0.16-beta2",
+    "casper-js-sdk": "^2.15.5",
     "clsx": "^2.1.1",
     "lucide-react": "^0.469.0",
     "next": "latest",
     "react": "latest",
-    "react-dom": "latest"
+    "react-dom": "latest",
+    "styled-components": "^6.1.19"
   },
   "devDependencies": {
     "@types/node": "^25.0.2",

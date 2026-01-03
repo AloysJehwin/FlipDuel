@@ -16,7 +16,6 @@ declare global {
 
 // Casper Network Configuration
 const CASPER_NETWORK = 'casper-test' // Using testnet
-const CASPER_TESTNET_RPC = 'https://testnet.cspr.live/rpc'
 
 class CasperWalletService {
   private provider: any = null
@@ -60,7 +59,7 @@ class CasperWalletService {
       }
 
       // Fetch balance from RPC
-      const balance = await this.getBalance(publicKey)
+      const balance = await this.getBalance(publicKey, true)
 
       // Store connection in localStorage for persistence
       if (typeof window !== 'undefined') {
@@ -96,7 +95,7 @@ class CasperWalletService {
   }
 
   /**
-   * Get wallet balance using Casper RPC with caching
+   * Get wallet balance using casper-contracts service
    */
   async getBalance(publicKey: string, forceRefresh: boolean = false): Promise<string> {
     try {
@@ -113,123 +112,21 @@ class CasperWalletService {
 
       console.log('🔍 Fetching fresh balance for:', publicKey)
 
-      // First get state root hash
-      const stateRootHash = await this.getStateRootHash()
-      console.log('📦 State root hash:', stateRootHash)
+      // Use casper-contracts service for balance
+      const { casperContracts } = await import('./casper-contracts')
+      const balance = await casperContracts.getAccountBalance(publicKey)
 
-      // Then get main purse
-      const mainPurse = await this.getMainPurseUref(publicKey)
-      console.log('👛 Main purse:', mainPurse)
-
-      // Finally get balance
-      const response = await fetch(CASPER_TESTNET_RPC, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          method: 'state_get_balance',
-          params: {
-            state_root_hash: stateRootHash,
-            purse_uref: mainPurse
-          },
-          id: 1
-        })
-      })
-
-      const data = await response.json()
-      console.log('💵 Balance response:', data)
-
-      if (data.error) {
-        console.error('❌ RPC Error:', data.error)
-        return '0'
+      // Cache the balance
+      this.balanceCache[publicKey] = {
+        balance,
+        timestamp: Date.now()
       }
 
-      if (data.result && data.result.balance_value) {
-        // Convert motes to CSPR (1 CSPR = 1,000,000,000 motes)
-        const balanceInMotes = BigInt(data.result.balance_value)
-        const balanceInCSPR = Number(balanceInMotes) / 1000000000
-        const formattedBalance = balanceInCSPR.toFixed(2)
-
-        // Cache the balance
-        this.balanceCache[publicKey] = {
-          balance: formattedBalance,
-          timestamp: Date.now()
-        }
-
-        console.log('✅ Balance fetched and cached:', formattedBalance, 'CSPR')
-        return formattedBalance
-      }
-
-      console.log('⚠️ No balance found, returning 0')
-      return '0'
+      console.log('✅ Balance fetched and cached:', balance, 'CSPR')
+      return balance
     } catch (error) {
       console.error('❌ Error fetching balance:', error)
       return '0'
-    }
-  }
-
-  /**
-   * Get the latest state root hash
-   */
-  private async getStateRootHash(): Promise<string> {
-    try {
-      const response = await fetch(CASPER_TESTNET_RPC, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          method: 'chain_get_state_root_hash',
-          params: [],
-          id: 1
-        })
-      })
-
-      const data = await response.json()
-      return data.result.state_root_hash
-    } catch (error) {
-      console.error('Error getting state root hash:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Get the main purse URef for a public key
-   */
-  private async getMainPurseUref(publicKey: string): Promise<string> {
-    try {
-      const stateRootHash = await this.getStateRootHash()
-
-      const response = await fetch(CASPER_TESTNET_RPC, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          method: 'state_get_account_info',
-          params: {
-            state_root_hash: stateRootHash,
-            public_key: publicKey
-          },
-          id: 1
-        })
-      })
-
-      const data = await response.json()
-
-      if (data.error) {
-        console.error('Error getting account info:', data.error)
-        throw new Error('Account not found on testnet')
-      }
-
-      return data.result.account.main_purse
-    } catch (error) {
-      console.error('Error getting main purse:', error)
-      throw error
     }
   }
 
@@ -269,7 +166,6 @@ class CasperWalletService {
 
       const connected = localStorage.getItem('casper_wallet_connected')
       const address = localStorage.getItem('casper_wallet_address')
-      const storedBalance = localStorage.getItem('casper_wallet_balance')
 
       if (connected !== 'true' || !address) {
         return null
@@ -281,8 +177,10 @@ class CasperWalletService {
 
       this.provider = window.CasperWalletProvider()
 
-      // Get fresh balance
-      const balance = await this.getBalance(address)
+      console.log('🔄 Restoring wallet connection for:', address)
+
+      // Get fresh balance with force refresh
+      const balance = await this.getBalance(address, true)
 
       // Update stored balance
       if (balance) {
@@ -296,7 +194,7 @@ class CasperWalletService {
       return {
         isConnected: true,
         publicKey: address,
-        balance: balance || storedBalance
+        balance
       }
     } catch (error) {
       console.error('Error restoring connection:', error)
