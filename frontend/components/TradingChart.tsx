@@ -71,7 +71,7 @@ export default function TradingChart({ data, trades = [], currentPrice, tokenSym
 
     areaSeries.setData(chartData as any)
 
-    // Add markers for trades
+    // Add markers for trades with larger, more visible indicators
     if (trades.length > 0) {
       const markers = trades.map(trade => {
         const timestamp = Math.floor(trade.time / 1000)
@@ -82,12 +82,16 @@ export default function TradingChart({ data, trades = [], currentPrice, tokenSym
             year: date.getFullYear(),
             month: date.getMonth() + 1,
             day: date.getDate(),
+            hour: date.getHours(),
+            minute: date.getMinutes(),
+            second: date.getSeconds(),
           },
           position: trade.action === 'buy' ? 'belowBar' : 'aboveBar',
           color: trade.action === 'buy' ? '#26a69a' : '#ef5350',
           shape: trade.action === 'buy' ? 'arrowUp' : 'arrowDown',
-          text: trade.amount.toFixed(3),
+          text: `${trade.action.toUpperCase()} ${trade.amount.toFixed(4)}`,
           price: trade.price,
+          size: 2, // Larger marker size
         }
       })
 

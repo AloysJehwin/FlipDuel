@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import TradingChart from '@/components/TradingChart'
@@ -27,6 +27,10 @@ export default function DuelArenaPage() {
   const [priceHistory, setPriceHistory] = useState<Array<{ time: number; price: number }>>([])
   const [tradeAmount, setTradeAmount] = useState('')
   const [startingBalance] = useState(100) // Starting balance in test tokens (e.g., 100 USDT equivalent)
+
+  // Refs for tracking P&L changes
+  const prevUserPnL = useRef<number>(0)
+  const prevOpponentPnL = useRef<number>(0)
 
   // Load duel data
   useEffect(() => {
@@ -132,6 +136,7 @@ export default function DuelArenaPage() {
     const cleanup = priceOracle.startLivePriceUpdates(
       duel.trading_token,
       (price) => {
+        console.log(`📈 Price update: ${duel.trading_token} = $${price.toFixed(2)}`)
         setCurrentPrice(price)
         setPriceHistory(prev => [...prev, { time: Date.now(), price }])
       },
@@ -321,6 +326,17 @@ export default function DuelArenaPage() {
   const opponentTotalValue = opponent ? opponentCashRemaining + opponentPortfolioValue : 0
   const opponentPnL = opponentTotalValue - initialCash
   const opponentPnLPercent = initialCash > 0 ? (opponentPnL / initialCash) * 100 : 0
+
+  // Log P&L changes when they occur
+  if (currentPrice > 0 && (Math.abs(userPnL - prevUserPnL.current) > 0.01 || Math.abs(opponentPnL - prevOpponentPnL.current) > 0.01)) {
+    console.log(`💰 P&L Update:`)
+    console.log(`  YOU: $${userPnL.toFixed(2)} (${userPnLPercent.toFixed(2)}%) - Cash: $${userCashRemaining.toFixed(2)}, Holdings: ${userHoldings.toFixed(4)} worth $${userPortfolioValue.toFixed(2)}`)
+    if (opponent) {
+      console.log(`  OPPONENT: $${opponentPnL.toFixed(2)} (${opponentPnLPercent.toFixed(2)}%) - Cash: $${opponentCashRemaining.toFixed(2)}, Holdings: ${opponentHoldings.toFixed(4)} worth $${opponentPortfolioValue.toFixed(2)}`)
+    }
+    prevUserPnL.current = userPnL
+    prevOpponentPnL.current = opponentPnL
+  }
 
   const handleCloseDuel = async () => {
     if (!duel || !walletAddress || participants.length < 2) return
