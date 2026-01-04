@@ -5,6 +5,8 @@ import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import { getAllDuels } from '@/lib/duel-api'
 import type { Duel as SupabaseDuel } from '@/lib/supabase'
+import { casperWallet } from '@/lib/casper-wallet'
+import { useWallet } from '@/contexts/WalletContext'
 
 interface Duel {
   id: string
@@ -18,6 +20,7 @@ interface Duel {
 }
 
 export default function LobbyPage() {
+  const { walletAddress } = useWallet()
   const [duels, setDuels] = useState<Duel[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'waiting' | 'active'>('waiting')
@@ -273,8 +276,8 @@ export default function LobbyPage() {
                 <div className="space-y-3 mb-4">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-text-muted uppercase">Creator</span>
-                    <span className="font-mono font-bold text-text-primary">
-                      {duel.creator}
+                    <span className="font-mono font-bold text-text-primary text-sm">
+                      {casperWallet.formatAddress(duel.creator)}
                     </span>
                   </div>
 
@@ -310,12 +313,21 @@ export default function LobbyPage() {
 
                 {/* Action Button */}
                 {duel.status === 'waiting' ? (
-                  <Link
-                    href={`/duel/${duel.id}`}
-                    className="btn-primary w-full text-center block"
-                  >
-                    JOIN DUEL
-                  </Link>
+                  duel.creator === walletAddress ? (
+                    <Link
+                      href={`/duel/${duel.id}`}
+                      className="btn-secondary w-full text-center block"
+                    >
+                      VIEW YOUR DUEL
+                    </Link>
+                  ) : (
+                    <Link
+                      href={`/duel/${duel.id}`}
+                      className="btn-primary w-full text-center block"
+                    >
+                      JOIN DUEL
+                    </Link>
+                  )
                 ) : (
                   <Link
                     href={`/duel/${duel.id}`}

@@ -1,8 +1,13 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
+import { useWallet } from '@/contexts/WalletContext'
+import { getDuelById, getDuelParticipants, getDuelTrades, completeDuel, claimRewards } from '@/lib/duel-api'
+import { casperContracts } from '@/lib/casper-contracts'
+import type { Duel, DuelParticipant, DuelTrade } from '@/lib/supabase'
 
 interface Trade {
   type: 'BUY' | 'SELL'
@@ -25,43 +30,176 @@ interface PlayerResult {
 export default function ResultsPage() {
   const params = useParams()
   const router = useRouter()
+  const { walletAddress } = useWallet()
 
-  // Mock results data
-  const winner: PlayerResult = {
-    address: '0x7a3f...9d2c',
-    startingBalance: 2.1,
-    finalBalance: 2.46,
-    totalPnl: 0.36,
-    pnlPercent: 17.14,
-    trades: [
-      { type: 'BUY', amount: 0.5, price: 3240.50, timestamp: '14:45', pnl: 0.12 },
-      { type: 'SELL', amount: 0.3, price: 3255.80, timestamp: '14:52', pnl: 0.08 },
-      { type: 'BUY', amount: 0.4, price: 3248.20, timestamp: '14:57', pnl: 0.16 },
-    ],
-    rank: 1,
+  const [duel, setDuel] = useState<Duel | null>(null)
+  const [participants, setParticipants] = useState<DuelParticipant[]>([])
+  const [trades, setTrades] = useState<DuelTrade[]>([])
+  const [loading, setLoading] = useState(true)
+  const [processing, setProcessing] = useState(false)
+  const [currentPrice] = useState(3245.67) // Final price snapshot
+
+  useEffect(() => {
+    loadDuelResults()
+  }, [params.id])
+
+  const loadDuelResults = async () => {
+    if (!params.id) return
+
+    try {
+      const duelData = await getDuelById(params.id as string)
+      if (!duelData) {
+        router.push('/lobby')
+        return
+      }
+
+      setDuel(duelData)
+
+      const participantsData = await getDuelParticipants(params.id as string)
+      setParticipants(participantsData)
+
+      const tradesData = await getDuelTrades(params.id as string)
+      setTrades(tradesData)
+
+      // If duel is still active, close it now
+      if (duelData.status === 'active' && walletAddress && participantsData.length >= 2) {
+        await closeDuelNow(duelData, participantsData, tradesData)
+      }
+    } catch (error) {
+      console.error('Error loading results:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const loser: PlayerResult = {
-    address: '0x4b8e...1a5f',
-    startingBalance: 2.1,
-    finalBalance: 1.99,
-    totalPnl: -0.11,
-    pnlPercent: -5.24,
-    trades: [
-      { type: 'BUY', amount: 0.6, price: 3250.00, timestamp: '14:46', pnl: -0.05 },
-      { type: 'SELL', amount: 0.4, price: 3242.50, timestamp: '14:50', pnl: -0.03 },
-      { type: 'BUY', amount: 0.2, price: 3255.00, timestamp: '14:55', pnl: -0.03 },
-    ],
-    rank: 2,
+  const closeDuelNow = async (duelData: Duel, participantsData: DuelParticipant[], tradesData: DuelTrade[]) => {
+    if (processing || !walletAddress) return
+
+    setProcessing(true)
+    try {
+      console.log('🏁 Auto-closing duel...')
+
+      // Calculate final stats for EACH participant
+      const participantStats = participantsData.map(p => {
+        const pTrades = tradesData.filter(t => t.wallet_address === p.wallet_address)
+        const pHoldings = pTrades.reduce((sum, t) => {
+          return t.action === 'buy' ? sum + Number(t.amount) : sum - Number(t.amount)
+        }, 0)
+        const initialCash = Number(duelData.entry_fee || 0)
+        const tradeCost = pTrades.reduce((sum, t) => {
+          return t.action === 'buy' ? sum + (Number(t.amount) * Number(t.price)) : sum - (Number(t.amount) * Number(t.price))
+        }, 0)
+        const totalValue = initialCash + (pHoldings * currentPrice) - tradeCost
+        const pnl = totalValue - initialCash
+        const pnlPercent = initialCash > 0 ? (pnl / initialCash) * 100 : 0
+
+        return {
+          participantId: p.id,
+          walletAddress: p.wallet_address,
+          finalBalance: totalValue,
+          pnl: pnl,
+          pnlPercent: pnlPercent
+        }
+      })
+
+      // Determine winner (highest P&L%)
+      // If tie, winner is randomly chosen
+      const sortedByPnL = [...participantStats].sort((a, b) => b.pnlPercent - a.pnlPercent)
+
+      // Check if it's a tie
+      const topPnL = sortedByPnL[0].pnlPercent
+      const tiedParticipants = sortedByPnL.filter(p => p.pnlPercent === topPnL)
+
+      const winner = tiedParticipants.length > 1
+        ? tiedParticipants[Math.floor(Math.random() * tiedParticipants.length)]
+        : sortedByPnL[0]
+
+      console.log('📊 Final Stats:', participantStats.map(p => ({
+        address: p.walletAddress.slice(0, 8),
+        pnl: p.pnlPercent.toFixed(2) + '%'
+      })))
+      console.log('🏆 Winner:', winner.walletAddress, 'with', winner.pnlPercent.toFixed(2) + '%')
+
+      // Close duel on blockchain
+      const closeTxHash = await casperContracts.closeDuel(
+        walletAddress,
+        duelData.blockchain_id || 0
+      )
+
+      // Update database
+      await completeDuel(
+        duelData.id,
+        winner.walletAddress,
+        participantStats.map(p => ({
+          participantId: p.participantId,
+          finalBalance: p.finalBalance,
+          pnl: p.pnl,
+          pnlPercent: p.pnlPercent
+        })),
+        closeTxHash
+      )
+
+      // If current user is winner, claim rewards
+      if (winner.walletAddress === walletAddress) {
+        try {
+          const claimTxHash = await casperContracts.claimRewards(
+            walletAddress,
+            duelData.blockchain_id || 0
+          )
+          await claimRewards(winner.participantId, claimTxHash)
+        } catch (err) {
+          console.error('Claim failed:', err)
+        }
+      }
+
+      // Reload data
+      await loadDuelResults()
+    } catch (error) {
+      console.error('Error closing duel:', error)
+    } finally {
+      setProcessing(false)
+    }
   }
 
-  // Mock connected wallet - in production this comes from Casper.click wallet
-  const userWalletAddress = '0x7a3f...9d2c'
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-primary-bg flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-retro-cherry text-2xl mb-4">Loading results...</div>
+        </div>
+      </div>
+    )
+  }
 
-  const isWinner = winner.address === userWalletAddress
-  const myStats = isWinner ? winner : loser
-  const opponentStats = isWinner ? loser : winner
-  const prizeAmount = 0.2 // 2x entry fee
+  if (!duel || participants.length < 2) {
+    return (
+      <div className="min-h-screen bg-primary-bg flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-retro-cherry text-2xl mb-4">Duel not found or incomplete</div>
+          <Link href="/lobby" className="btn-primary">Back to Lobby</Link>
+        </div>
+      </div>
+    )
+  }
+
+  const myParticipant = participants.find(p => p.wallet_address === walletAddress)
+  const opponent = participants.find(p => p.wallet_address !== walletAddress)
+
+  if (!myParticipant || !opponent) {
+    return (
+      <div className="min-h-screen bg-primary-bg flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-retro-cherry text-2xl">You were not a participant in this duel</div>
+          <Link href="/lobby" className="btn-primary mt-4">Back to Lobby</Link>
+        </div>
+      </div>
+    )
+  }
+
+  const isWinner = duel.winner_address === walletAddress
+  const myPnLPercent = myParticipant.pnl_percent || 0
+  const opponentPnLPercent = opponent.pnl_percent || 0
+  const prizeAmount = Number(duel.prize_pool || 0)
 
   return (
     <div className="min-h-screen bg-primary-bg">
@@ -85,7 +223,7 @@ export default function ResultsPage() {
                   VICTORY!
                 </h1>
                 <div className="card-retro inline-block px-6 py-2 mb-4">
-                  <div className="font-mono font-bold text-retro-charcoal">{userWalletAddress}</div>
+                  <div className="font-mono font-bold text-retro-charcoal">{walletAddress?.slice(0, 8)}...{walletAddress?.slice(-6)}</div>
                 </div>
                 <p className="text-2xl text-retro-cream mb-6">
                   You won the duel!
@@ -111,7 +249,7 @@ export default function ResultsPage() {
                   DEFEAT
                 </h1>
                 <div className="card-retro inline-block px-6 py-2 mb-4">
-                  <div className="font-mono font-bold text-retro-charcoal">{userWalletAddress}</div>
+                  <div className="font-mono font-bold text-retro-charcoal">{walletAddress?.slice(0, 8)}...{walletAddress?.slice(-6)}</div>
                 </div>
                 <p className="text-2xl text-retro-cream mb-6">
                   Better luck next time!
@@ -137,7 +275,7 @@ export default function ResultsPage() {
                     WINNER
                   </div>
                   <div className="font-mono text-lg font-bold text-retro-charcoal mb-1">
-                    {winner.address}
+                    {duel.winner_address?.slice(0, 8)}...{duel.winner_address?.slice(-6)}
                   </div>
                   {isWinner && (
                     <div className="text-xs text-retro-charcoal uppercase font-bold">
@@ -150,13 +288,13 @@ export default function ResultsPage() {
                   <div className="bg-surface/80 border-[3px] border-retro-charcoal p-3">
                     <div className="text-xs text-text-muted uppercase">Starting</div>
                     <div className="font-bold text-retro-charcoal">
-                      {winner.startingBalance.toFixed(3)} CSPR
+                      {Number(duel.entry_fee).toFixed(3)} CSPR
                     </div>
                   </div>
                   <div className="bg-surface/80 border-[3px] border-retro-charcoal p-3">
                     <div className="text-xs text-text-muted uppercase">Final</div>
                     <div className="font-bold text-retro-blue">
-                      {winner.finalBalance.toFixed(3)} CSPR
+                      {(isWinner ? myParticipant.final_balance : opponent.final_balance || 0).toFixed(3)} CSPR
                     </div>
                   </div>
                 </div>
@@ -164,10 +302,10 @@ export default function ResultsPage() {
                 <div className="bg-retro-yellow border-[3px] border-retro-charcoal p-4 shadow-retro-inset">
                   <div className="text-xs text-text-muted uppercase mb-1">Total P&L</div>
                   <div className="text-3xl font-retro text-retro-charcoal">
-                    +{winner.pnlPercent.toFixed(2)}%
+                    +{(isWinner ? myPnLPercent : opponentPnLPercent).toFixed(2)}%
                   </div>
                   <div className="text-sm font-bold text-retro-green">
-                    +{winner.totalPnl.toFixed(4)} CSPR
+                    +{(isWinner ? myParticipant.pnl : opponent.pnl || 0).toFixed(4)} CSPR
                   </div>
                 </div>
               </div>
@@ -179,7 +317,7 @@ export default function ResultsPage() {
                     2ND PLACE
                   </div>
                   <div className="font-mono text-lg font-bold text-retro-cream mb-1">
-                    {loser.address}
+                    {(isWinner ? opponent.wallet_address : myParticipant.wallet_address).slice(0, 8)}...{(isWinner ? opponent.wallet_address : myParticipant.wallet_address).slice(-6)}
                   </div>
                   {!isWinner && (
                     <div className="text-xs text-retro-cream uppercase font-bold">
@@ -192,13 +330,13 @@ export default function ResultsPage() {
                   <div className="bg-surface/80 border-[3px] border-retro-charcoal p-3">
                     <div className="text-xs text-text-muted uppercase">Starting</div>
                     <div className="font-bold text-retro-charcoal">
-                      {loser.startingBalance.toFixed(3)} CSPR
+                      {Number(duel.entry_fee).toFixed(3)} CSPR
                     </div>
                   </div>
                   <div className="bg-surface/80 border-[3px] border-retro-charcoal p-3">
                     <div className="text-xs text-text-muted uppercase">Final</div>
                     <div className="font-bold text-retro-blue">
-                      {loser.finalBalance.toFixed(3)} CSPR
+                      {(isWinner ? opponent.final_balance : myParticipant.final_balance || 0).toFixed(3)} CSPR
                     </div>
                   </div>
                 </div>
@@ -206,10 +344,10 @@ export default function ResultsPage() {
                 <div className="bg-surface border-[3px] border-retro-charcoal p-4 shadow-retro-inset">
                   <div className="text-xs text-text-muted uppercase mb-1">Total P&L</div>
                   <div className="text-3xl font-retro text-retro-charcoal">
-                    {loser.pnlPercent.toFixed(2)}%
+                    {(isWinner ? opponentPnLPercent : myPnLPercent).toFixed(2)}%
                   </div>
                   <div className="text-sm font-bold text-retro-coral">
-                    {loser.totalPnl.toFixed(4)} CSPR
+                    {(isWinner ? opponent.pnl : myParticipant.pnl || 0).toFixed(4)} CSPR
                   </div>
                 </div>
               </div>
@@ -221,51 +359,53 @@ export default function ResultsPage() {
             <h2 className="retro-heading text-2xl mb-6">YOUR TRADE HISTORY</h2>
 
             <div className="card-retro">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b-4 border-retro-charcoal">
-                      <th className="text-left py-3 px-4 retro-subheading text-sm">Type</th>
-                      <th className="text-left py-3 px-4 retro-subheading text-sm">Amount</th>
-                      <th className="text-left py-3 px-4 retro-subheading text-sm">Price</th>
-                      <th className="text-left py-3 px-4 retro-subheading text-sm">Time</th>
-                      <th className="text-left py-3 px-4 retro-subheading text-sm">P&L</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {myStats.trades.map((trade, idx) => (
-                      <tr key={idx} className="border-b-2 border-retro-charcoal/20">
-                        <td className="py-3 px-4">
-                          <span className={`retro-badge ${
-                            trade.type === 'BUY' ? 'bg-retro-green' : 'bg-retro-coral'
-                          }`}>
-                            {trade.type}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 font-mono">{trade.amount.toFixed(4)} CSPR</td>
-                        <td className="py-3 px-4 font-mono">${trade.price.toFixed(2)}</td>
-                        <td className="py-3 px-4 text-text-muted">{trade.timestamp}</td>
-                        <td className="py-3 px-4">
-                          <span className={`font-bold ${
-                            trade.pnl >= 0 ? 'text-retro-green' : 'text-retro-coral'
-                          }`}>
-                            {trade.pnl > 0 ? '+' : ''}{trade.pnl.toFixed(4)} CSPR
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              {trades.filter(t => t.wallet_address === walletAddress).length > 0 ? (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b-4 border-retro-charcoal">
+                          <th className="text-left py-3 px-4 retro-subheading text-sm">Type</th>
+                          <th className="text-left py-3 px-4 retro-subheading text-sm">Amount</th>
+                          <th className="text-left py-3 px-4 retro-subheading text-sm">Price</th>
+                          <th className="text-left py-3 px-4 retro-subheading text-sm">Time</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {trades.filter(t => t.wallet_address === walletAddress).map((trade) => (
+                          <tr key={trade.id} className="border-b-2 border-retro-charcoal/20">
+                            <td className="py-3 px-4">
+                              <span className={`retro-badge ${
+                                trade.action === 'buy' ? 'bg-retro-green' : 'bg-retro-coral'
+                              }`}>
+                                {trade.action.toUpperCase()}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 font-mono">{Number(trade.amount).toFixed(4)} {trade.token}</td>
+                            <td className="py-3 px-4 font-mono">${Number(trade.price).toFixed(2)}</td>
+                            <td className="py-3 px-4 text-text-muted">
+                              {new Date(trade.timestamp).toLocaleTimeString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
 
-              <div className="mt-4 pt-4 border-t-4 border-retro-charcoal flex justify-between items-center">
-                <span className="retro-subheading">TOTAL</span>
-                <span className={`text-2xl font-retro ${
-                  myStats.totalPnl >= 0 ? 'text-retro-green' : 'text-retro-coral'
-                }`}>
-                  {myStats.totalPnl > 0 ? '+' : ''}{myStats.totalPnl.toFixed(4)} CSPR
-                </span>
-              </div>
+                  <div className="mt-4 pt-4 border-t-4 border-retro-charcoal flex justify-between items-center">
+                    <span className="retro-subheading">TOTAL P&L</span>
+                    <span className={`text-2xl font-retro ${
+                      myPnLPercent >= 0 ? 'text-retro-green' : 'text-retro-coral'
+                    }`}>
+                      {myPnLPercent > 0 ? '+' : ''}{myPnLPercent.toFixed(2)}%
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-8 text-text-muted">
+                  No trades were made during this duel
+                </div>
+              )}
             </div>
           </section>
 

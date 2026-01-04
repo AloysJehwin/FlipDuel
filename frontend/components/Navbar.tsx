@@ -12,7 +12,7 @@ interface NavbarProps {
 
 export default function Navbar({ visible = true }: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const { walletConnected, walletAddress, walletBalance, isConnecting, connectWallet, disconnectWallet } = useWallet()
+  const { walletConnected, walletAddress, walletBalance, isConnecting, connectWallet, disconnectWallet, switchAccount } = useWallet()
 
   const navLinks = [
     { name: 'Home', href: '/' },
@@ -75,13 +75,23 @@ export default function Navbar({ visible = true }: NavbarProps) {
                 </div>
 
                 {/* Wallet Address */}
-                <button
-                  onClick={disconnectWallet}
-                  className="px-4 py-2 bg-retro-cherry border-2 border-retro-cherry-light text-text-primary font-mono text-sm font-bold shadow-retro hover:bg-retro-cherry-light hover:shadow-retro-lg transition-all duration-300 hover:-translate-y-0.5 rounded-lg"
-                  title="Click to disconnect"
-                >
-                  {walletAddress ? casperWallet.formatAddress(walletAddress) : '0x...'}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={switchAccount}
+                    disabled={isConnecting}
+                    className="px-4 py-2 bg-accent-gray border-2 border-accent-light-gray text-text-primary font-mono text-sm font-bold shadow-retro hover:bg-accent-light-gray hover:shadow-retro-lg transition-all duration-300 hover:-translate-y-0.5 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Switch account"
+                  >
+                    {walletAddress ? casperWallet.formatAddress(walletAddress) : '0x...'}
+                  </button>
+                  <button
+                    onClick={disconnectWallet}
+                    className="px-3 py-2 bg-retro-cherry border-2 border-retro-cherry-light text-text-primary text-xs font-bold shadow-retro hover:bg-retro-cherry-light hover:shadow-retro-lg transition-all duration-300 hover:-translate-y-0.5 rounded-lg"
+                    title="Disconnect wallet"
+                  >
+                    DISCONNECT
+                  </button>
+                </div>
               </>
             ) : (
               <button
@@ -125,8 +135,9 @@ export default function Navbar({ visible = true }: NavbarProps) {
                     <span className="font-bold text-text-primary">{walletBalance || '0'} CSPR</span>
                   </div>
                   <button
-                    onClick={disconnectWallet}
-                    className="px-4 py-3 bg-retro-cherry border-2 border-retro-cherry-light text-text-primary font-mono text-sm font-bold text-center shadow-retro w-full hover:bg-retro-cherry-light transition-colors duration-300 rounded-lg"
+                    onClick={switchAccount}
+                    disabled={isConnecting}
+                    className="px-4 py-3 bg-accent-gray border-2 border-accent-light-gray text-text-primary font-mono text-sm font-bold text-center shadow-retro w-full hover:bg-accent-light-gray transition-colors duration-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {walletAddress ? casperWallet.formatAddress(walletAddress) : '0x...'}
                   </button>

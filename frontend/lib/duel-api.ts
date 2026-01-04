@@ -58,7 +58,9 @@ export async function createDuel(
   creatorAddress: string,
   entryFee: number,
   tradingToken: string,
-  duration: number
+  duration: number,
+  createTxHash?: string,
+  blockchainId?: number
 ): Promise<Duel | null> {
   try {
     // Ensure user profile exists
@@ -72,7 +74,10 @@ export async function createDuel(
         trading_token: tradingToken,
         duration: duration,
         prize_pool: entryFee * 2,
-        status: 'waiting'
+        status: 'waiting',
+        create_tx_hash: createTxHash,
+        create_tx_status: createTxHash ? 'pending' : null,
+        blockchain_id: blockchainId
       })
       .select()
       .single()
@@ -132,7 +137,11 @@ export async function getDuelById(duelId: string): Promise<Duel | null> {
   }
 }
 
-export async function joinDuel(duelId: string, challengerAddress: string): Promise<boolean> {
+export async function joinDuel(
+  duelId: string,
+  challengerAddress: string,
+  joinTxHash?: string
+): Promise<boolean> {
   try {
     // Ensure user profile exists
     await createOrGetUserProfile(challengerAddress)
@@ -149,7 +158,9 @@ export async function joinDuel(duelId: string, challengerAddress: string): Promi
       .insert({
         duel_id: duelId,
         wallet_address: challengerAddress,
-        position: 2
+        position: 2,
+        join_tx_hash: joinTxHash,
+        join_tx_status: joinTxHash ? 'pending' : null
       })
 
     if (participantError) throw participantError
@@ -159,7 +170,8 @@ export async function joinDuel(duelId: string, challengerAddress: string): Promi
       .from('duels')
       .update({
         status: 'active',
-        started_at: new Date().toISOString()
+        started_at: new Date().toISOString(),
+        start_tx_hash: joinTxHash
       })
       .eq('id', duelId)
 
@@ -199,7 +211,8 @@ export async function recordTrade(
   action: 'buy' | 'sell',
   token: string,
   amount: number,
-  price: number
+  price: number,
+  txHash?: string
 ): Promise<DuelTrade | null> {
   try {
     const { data, error } = await supabase
@@ -211,7 +224,9 @@ export async function recordTrade(
         action: action,
         token: token,
         amount: amount,
-        price: price
+        price: price,
+        tx_hash: txHash,
+        tx_status: txHash ? 'pending' : null
       })
       .select()
       .single()
@@ -252,7 +267,8 @@ export async function completeDuel(
     finalBalance: number
     pnl: number
     pnlPercent: number
-  }>
+  }>,
+  closeTxHash?: string
 ): Promise<boolean> {
   try {
     // Update duel status
@@ -261,7 +277,8 @@ export async function completeDuel(
       .update({
         status: 'completed',
         ended_at: new Date().toISOString(),
-        winner_address: winnerAddress
+        winner_address: winnerAddress,
+        close_tx_hash: closeTxHash
       })
       .eq('id', duelId)
 
@@ -284,6 +301,28 @@ export async function completeDuel(
     return true
   } catch (error) {
     console.error('Error completing duel:', error)
+    return false
+  }
+}
+
+export async function claimRewards(
+  participantId: string,
+  claimTxHash: string
+): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('duel_participants')
+      .update({
+        claim_tx_hash: claimTxHash,
+        claim_tx_status: 'pending',
+        claimed_at: new Date().toISOString()
+      })
+      .eq('id', participantId)
+
+    if (error) throw error
+    return true
+  } catch (error) {
+    console.error('Error recording claim:', error)
     return false
   }
 }
