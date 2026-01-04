@@ -179,15 +179,49 @@ export class PriceOracle {
     return points
   }
 
-  // Start live price updates for a duel
+  // Start live price updates for a duel with realistic price movement
   startLivePriceUpdates(
     token: string,
     callback: (price: number) => void,
     intervalMs: number = 5000
   ): () => void {
+    let lastPrice: number | null = null
+    let basePrice: number | null = null
+    let trend = 0
+
     const interval = setInterval(async () => {
-      const price = await this.getCurrentPrice(token)
-      callback(price)
+      try {
+        // Get base price from API (this might be cached/static)
+        const apiPrice = await this.getCurrentPrice(token)
+
+        // Initialize base price on first call
+        if (basePrice === null) {
+          basePrice = apiPrice
+          lastPrice = apiPrice
+          trend = (Math.random() - 0.5) * 0.002 // Random initial trend
+        }
+
+        // Generate realistic price movement (random walk with trend)
+        const volatility = basePrice * 0.003 // 0.3% volatility per update
+        const randomChange = (Math.random() - 0.5) * volatility
+        const trendChange = trend * (lastPrice || basePrice)
+
+        // Calculate new price
+        let newPrice = (lastPrice || basePrice) + randomChange + trendChange
+
+        // Occasionally change trend direction (10% chance)
+        if (Math.random() < 0.1) {
+          trend = (Math.random() - 0.5) * 0.003
+        }
+
+        // Keep price within ±5% of base price for realism
+        newPrice = Math.max(basePrice * 0.95, Math.min(basePrice * 1.05, newPrice))
+
+        lastPrice = newPrice
+        callback(newPrice)
+      } catch (error) {
+        console.error('Error in price update:', error)
+      }
     }, intervalMs)
 
     // Return cleanup function
