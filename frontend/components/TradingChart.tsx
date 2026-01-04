@@ -65,11 +65,11 @@ export default function TradingChart({ data, trades = [], currentPrice, tokenSym
 
     // Format data for chart
     const chartData = data.map(d => ({
-      time: Math.floor(d.time / 1000),
+      time: Math.floor(d.time / 1000) as any,
       value: d.price
     }))
 
-    areaSeries.setData(chartData)
+    areaSeries.setData(chartData as any)
 
     // Add markers for trades
     if (trades.length > 0) {
@@ -87,10 +87,11 @@ export default function TradingChart({ data, trades = [], currentPrice, tokenSym
           color: trade.action === 'buy' ? '#26a69a' : '#ef5350',
           shape: trade.action === 'buy' ? 'arrowUp' : 'arrowDown',
           text: trade.amount.toFixed(3),
+          price: trade.price,
         }
       })
 
-      createSeriesMarkers(areaSeries, markers)
+      createSeriesMarkers(areaSeries, markers as any)
     }
 
     // Fit content

@@ -18,6 +18,13 @@ export interface Duel {
   ended_at?: string
   winner_address?: string
   prize_pool: number // in CSPR
+  // Web3 fields
+  blockchain_id?: number
+  create_tx_hash?: string
+  create_tx_status?: 'pending' | 'success' | 'failed'
+  start_tx_hash?: string
+  close_tx_hash?: string
+  contract_address?: string
 }
 
 export interface DuelParticipant {
@@ -30,6 +37,12 @@ export interface DuelParticipant {
   pnl: number // Profit/Loss
   pnl_percent: number
   position: 1 | 2 // 1 = creator, 2 = challenger
+  // Web3 fields
+  join_tx_hash?: string
+  join_tx_status?: 'pending' | 'success' | 'failed'
+  claim_tx_hash?: string
+  claim_tx_status?: 'pending' | 'success' | 'failed'
+  claimed_at?: string
 }
 
 export interface DuelTrade {
@@ -42,6 +55,10 @@ export interface DuelTrade {
   amount: number
   price: number
   timestamp: string
+  // Web3 fields
+  tx_hash?: string
+  tx_status?: 'pending' | 'success' | 'failed'
+  gas_fee?: number
 }
 
 export interface UserProfile {

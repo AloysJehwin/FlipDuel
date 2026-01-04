@@ -5,7 +5,6 @@
 export interface CasperWallet {
   isConnected: boolean
   publicKey: string | null
-  balance: string | null
 }
 
 declare global {
@@ -20,8 +19,6 @@ const CASPER_NETWORK = 'casper-test' // Using testnet
 class CasperWalletService {
   private provider: any = null
   private network: string = CASPER_NETWORK
-  private balanceCache: { [key: string]: { balance: string; timestamp: number } } = {}
-  private CACHE_DURATION = 30000 // 30 seconds cache
 
   /**
    * Check if CASPER.click wallet extension is installed
@@ -58,20 +55,15 @@ class CasperWalletService {
         throw new Error('No public key found. Please make sure you have an account in CASPER.click wallet.')
       }
 
-      // Fetch balance from RPC
-      const balance = await this.getBalance(publicKey, true)
-
       // Store connection in localStorage for persistence
       if (typeof window !== 'undefined') {
         localStorage.setItem('casper_wallet_connected', 'true')
         localStorage.setItem('casper_wallet_address', publicKey)
-        localStorage.setItem('casper_wallet_balance', balance)
       }
 
       return {
         isConnected: true,
-        publicKey,
-        balance
+        publicKey
       }
     } catch (error: any) {
       console.error('Error connecting to CASPER wallet:', error)
@@ -85,50 +77,13 @@ class CasperWalletService {
   async disconnect(): Promise<void> {
     this.provider = null
     // Clear cache
-    this.balanceCache = {}
     // Clear localStorage
     if (typeof window !== 'undefined') {
       localStorage.removeItem('casper_wallet_connected')
       localStorage.removeItem('casper_wallet_address')
-      localStorage.removeItem('casper_wallet_balance')
     }
   }
 
-  /**
-   * Get wallet balance using casper-contracts service
-   */
-  async getBalance(publicKey: string, forceRefresh: boolean = false): Promise<string> {
-    try {
-      // Check cache first
-      if (!forceRefresh && this.balanceCache[publicKey]) {
-        const cached = this.balanceCache[publicKey]
-        const now = Date.now()
-
-        if (now - cached.timestamp < this.CACHE_DURATION) {
-          console.log('💾 Using cached balance:', cached.balance, 'CSPR')
-          return cached.balance
-        }
-      }
-
-      console.log('🔍 Fetching fresh balance for:', publicKey)
-
-      // Use casper-contracts service for balance
-      const { casperContracts } = await import('./casper-contracts')
-      const balance = await casperContracts.getAccountBalance(publicKey)
-
-      // Cache the balance
-      this.balanceCache[publicKey] = {
-        balance,
-        timestamp: Date.now()
-      }
-
-      console.log('✅ Balance fetched and cached:', balance, 'CSPR')
-      return balance
-    } catch (error) {
-      console.error('❌ Error fetching balance:', error)
-      return '0'
-    }
-  }
 
   /**
    * Get current connected account
@@ -178,23 +133,12 @@ class CasperWalletService {
       this.provider = window.CasperWalletProvider()
 
       console.log('🔄 Restoring wallet connection for:', address)
-
-      // Get fresh balance with force refresh
-      const balance = await this.getBalance(address, true)
-
-      // Update stored balance
-      if (balance) {
-        localStorage.setItem('casper_wallet_balance', balance)
-      }
-
       console.log('🔄 Restored wallet connection')
       console.log('🔑 Address:', address)
-      console.log('💰 Balance:', balance, 'CSPR')
 
       return {
         isConnected: true,
-        publicKey: address,
-        balance
+        publicKey: address
       }
     } catch (error) {
       console.error('Error restoring connection:', error)
@@ -258,7 +202,6 @@ export function useCasperWallet() {
     isInstalled: () => casperWallet.isInstalled(),
     connect: () => casperWallet.connect(),
     disconnect: () => casperWallet.disconnect(),
-    getBalance: (publicKey: string) => casperWallet.getBalance(publicKey),
     getActiveAccount: () => casperWallet.getActiveAccount(),
     signAndSendTransaction: (recipient: string, amount: string, id?: number) =>
       casperWallet.signAndSendTransaction(recipient, amount, id),
