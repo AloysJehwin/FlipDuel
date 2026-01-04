@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Menu, X, Wallet } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
 import { useWallet } from '@/contexts/WalletContext'
 import { casperWallet } from '@/lib/casper-wallet'
 
@@ -12,7 +12,7 @@ interface NavbarProps {
 
 export default function Navbar({ visible = true }: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const { walletConnected, walletAddress, walletBalance, isConnecting, connectWallet, disconnectWallet, switchAccount } = useWallet()
+  const { walletConnected, walletAddress, isConnecting, connectWallet, disconnectWallet, switchAccount } = useWallet()
 
   const navLinks = [
     { name: 'Home', href: '/' },
@@ -65,13 +65,6 @@ export default function Navbar({ visible = true }: NavbarProps) {
                 {/* Testnet Badge */}
                 <div className="px-3 py-1 bg-accent-gray border-2 border-accent-light-gray text-text-primary text-xs font-bold uppercase transition-all duration-300 hover:bg-accent-light-gray rounded-md">
                   TESTNET
-                </div>
-
-                {/* Wallet Balance */}
-                <div className="flex items-center gap-2 px-4 py-2 bg-surface-light border-2 border-accent-gray shadow-retro-inset transition-all duration-300 hover:border-retro-cherry hover:shadow-retro rounded-lg">
-                  <Wallet className="w-4 h-4 text-text-primary" />
-                  <span className="font-bold text-text-primary">{walletBalance || '0.0'}</span>
-                  <span className="text-xs text-text-muted font-bold">CSPR</span>
                 </div>
 
                 {/* Wallet Address */}
@@ -130,10 +123,6 @@ export default function Navbar({ visible = true }: NavbarProps) {
             <div className="pt-3 border-t-2 border-accent-gray space-y-2">
               {walletConnected ? (
                 <>
-                  <div className="flex items-center gap-2 px-4 py-3 bg-surface-light border-2 border-accent-gray shadow-retro-inset rounded-lg">
-                    <Wallet className="w-4 h-4 text-text-primary" />
-                    <span className="font-bold text-text-primary">{walletBalance || '0'} CSPR</span>
-                  </div>
                   <button
                     onClick={switchAccount}
                     disabled={isConnecting}

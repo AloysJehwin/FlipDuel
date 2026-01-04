@@ -25,7 +25,7 @@ export default function TradingChart({ data, trades = [], currentPrice, tokenSym
   useEffect(() => {
     if (!chartContainerRef.current || data.length === 0) return
 
-    // Create chart
+    // Create chart with proper time scale configuration
     const chart = createChart(chartContainerRef.current, {
       layout: {
         background: { type: ColorType.Solid, color: '#1a1a1a' },
@@ -39,14 +39,41 @@ export default function TradingChart({ data, trades = [], currentPrice, tokenSym
       height: 400,
       timeScale: {
         timeVisible: true,
-        secondsVisible: false,
+        secondsVisible: true,
         borderColor: '#2a2a2a',
+        rightOffset: 12,
+        barSpacing: 3,
+        fixLeftEdge: false,
+        fixRightEdge: false,
+        lockVisibleTimeRangeOnResize: true,
+        rightBarStaysOnScroll: true,
+        borderVisible: true,
+        visible: true,
       },
       rightPriceScale: {
         borderColor: '#2a2a2a',
+        scaleMargins: {
+          top: 0.1,
+          bottom: 0.1,
+        },
+        autoScale: true,
       },
       crosshair: {
         mode: 0,
+        vertLine: {
+          color: '#758696',
+          width: 1,
+          style: 2,
+          visible: true,
+          labelVisible: true,
+        },
+        horzLine: {
+          color: '#758696',
+          width: 1,
+          style: 2,
+          visible: true,
+          labelVisible: true,
+        },
       },
     })
 
@@ -58,9 +85,11 @@ export default function TradingChart({ data, trades = [], currentPrice, tokenSym
       lineWidth: 2,
       priceFormat: {
         type: 'price',
-        precision: 2,
-        minMove: 0.01,
+        precision: 4, // More precision for crypto prices
+        minMove: 0.0001,
       },
+      lastValueVisible: true,
+      priceLineVisible: true,
     })
 
     // Format data for chart
@@ -71,22 +100,17 @@ export default function TradingChart({ data, trades = [], currentPrice, tokenSym
 
     areaSeries.setData(chartData as any)
 
-    // Add markers for trades
+    // Add markers for trades with proper timestamp
     if (trades.length > 0) {
       const markers = trades.map(trade => {
         const timestamp = Math.floor(trade.time / 1000)
-        const date = new Date(timestamp * 1000)
 
         return {
-          time: {
-            year: date.getFullYear(),
-            month: date.getMonth() + 1,
-            day: date.getDate(),
-          },
+          time: timestamp as any,
           position: trade.action === 'buy' ? 'belowBar' : 'aboveBar',
           color: trade.action === 'buy' ? '#26a69a' : '#ef5350',
           shape: trade.action === 'buy' ? 'arrowUp' : 'arrowDown',
-          text: trade.amount.toFixed(3),
+          text: `${trade.action.toUpperCase()} ${trade.amount.toFixed(4)}`,
           price: trade.price,
         }
       })
@@ -117,12 +141,13 @@ export default function TradingChart({ data, trades = [], currentPrice, tokenSym
     }
   }, [data, trades])
 
-  // Update current price
+  // Update current price with new time point
   useEffect(() => {
     if (currentPrice && seriesRef.current && data.length > 0) {
-      const latestTime = Math.floor(data[data.length - 1].time / 1000)
+      // Use current timestamp for the latest price update
+      const currentTime = Math.floor(Date.now() / 1000)
       seriesRef.current.update({
-        time: latestTime,
+        time: currentTime as any,
         value: currentPrice
       })
     }
