@@ -1,25 +1,11 @@
-// Casper Contract Service using CSPR.click for Casper 2.0 compatibility
+// Casper Contract Service using Casper Wallet
 
-import * as CasperSDK from 'casper-js-sdk'
-
-const {
-  PublicKey,
-  CLValueUInt8,
-  CLValueUInt64,
-  CLValueUInt512,
-  CLValueString,
-  Args,
-  TransactionV1,
-  TransactionV1Payload,
-  TransactionTarget,
-  TransactionInvocationTarget,
-  TransactionRuntime,
-  TransactionEntryPoint,
-  TransactionScheduling,
-  PricingMode,
-  FixedMode,
-  Hash
-} = CasperSDK
+import {
+  CLPublicKey,
+  CLValueBuilder,
+  RuntimeArgs,
+  DeployUtil
+} from 'casper-js-sdk'
 
 export const CONTRACT_ADDRESSES = {
   DUEL_MANAGER: process.env.NEXT_PUBLIC_DUEL_MANAGER_CONTRACT || '',
@@ -28,16 +14,9 @@ export const CONTRACT_ADDRESSES = {
   LIQUID_STAKE: process.env.NEXT_PUBLIC_LIQUID_STAKE_CONTRACT || '',
 }
 
-const CASPER_TESTNET_RPC = process.env.NEXT_PUBLIC_CASPER_RPC || 'https://rpc.testnet.casperlabs.io'
 const CHAIN_NAME = 'casper-test'
-
-console.log('⚙️ Casper Config:', {
-  rpc: CASPER_TESTNET_RPC,
-  chainName: CHAIN_NAME,
-  duelManagerContract: process.env.NEXT_PUBLIC_DUEL_MANAGER_CONTRACT
-})
-const DEFAULT_GAS_PAYMENT = '5000000000' // 5 CSPR
-const DEFAULT_TTL = 1800000 // 30 minutes
+const DEFAULT_GAS_PAYMENT = '5000000000'
+const DEFAULT_TTL = 1800000
 
 export const csprToMotes = (cspr: number): string => {
   return (cspr * 1_000_000_000).toString()
@@ -47,289 +26,208 @@ export const motesToCspr = (motes: string | bigint): number => {
   return Number(BigInt(motes) / BigInt(1_000_000_000))
 }
 
-declare global {
-  interface Window {
-    CasperWalletProvider?: any
-  }
-}
-
-interface SignatureResponse {
-  cancelled: boolean
-  signatureHex?: string
-  signature?: Uint8Array
-}
-
 class CasperContractService {
-  private getClickRef() {
-    if (typeof window === 'undefined' || !(window as any).csprclick) {
-      throw new Error('CSPR.click not initialized. Make sure CSPRClickProvider is wrapping your app.')
+  private getWalletProvider() {
+    if (typeof window === 'undefined' || !(window as any).CasperWalletProvider) {
+      throw new Error('Casper Wallet not found. Please install the extension.')
     }
-    const clickRef = (window as any).csprclick
-
-    // Log network info for debugging
-    console.log('🌐 CSPR.click Network Info:', {
-      chainName: clickRef.chainName,
-      activeAccount: clickRef.getActiveAccount?.(),
-      isConnected: !!clickRef.getActiveAccount?.()
-    })
-
-    return clickRef
+    return (window as any).CasperWalletProvider()
   }
 
-  /**
-   * Create and sign a TransactionV1 for Casper 2.0 using CSPR.click
-   */
-  private async createAndSignTransaction(
+  private async createAndSignDeploy(
     publicKeyHex: string,
     contractHash: string,
     entryPoint: string,
-    runtimeArgs: typeof Args,
+    runtimeArgs: RuntimeArgs,
     paymentAmount: string = DEFAULT_GAS_PAYMENT,
     attachedValue?: string
   ): Promise<string> {
-    const clickRef = this.getClickRef()
+    const provider = this.getWalletProvider()
 
-    console.log('🚀 Creating TransactionV1 for Casper 2.0...', {
+    console.log('🚀 Creating deploy for contract call...')
+    console.log('📋 Contract Details:', {
       entryPoint,
       contractHash,
+      chainName: CHAIN_NAME,
+      paymentAmount,
       attachedValue: attachedValue || 'none'
     })
 
     try {
-      // Remove "hash-" prefix if present
       const cleanHash = contractHash.replace('hash-', '')
+      console.log('🔑 Sender Public Key:', publicKeyHex)
 
-      // Add attached value to runtime args if provided (for payable functions)
       if (attachedValue) {
-        runtimeArgs = Args.fromMap({
-          ...Object.fromEntries(runtimeArgs.args),
-          attached_value: new CLValueUInt512(attachedValue)
-        })
+        const argsMap = Object.fromEntries(runtimeArgs.args)
+        argsMap['attached_value'] = CLValueBuilder.u512(attachedValue)
+        runtimeArgs = RuntimeArgs.fromMap(argsMap)
+        console.log('💰 Added attached_value to args:', attachedValue)
       }
 
-      const initiatorAddr = PublicKey.fromHex(publicKeyHex)
+      console.log('📦 Runtime Args:', JSON.stringify(Array.from(runtimeArgs.args.entries())))
 
-      // Create transaction invocation target - by hash
-      const invocationTarget = new TransactionInvocationTarget()
-      invocationTarget.byHash = new Hash(Uint8Array.from(Buffer.from(cleanHash, 'hex')))
+      const senderPublicKey = CLPublicKey.fromHex(publicKeyHex)
+      const deployParams = new DeployUtil.DeployParams(senderPublicKey, CHAIN_NAME)
 
-      // Create stored target with runtime
-      const storedTarget = {
-        id: invocationTarget,
-        runtime: TransactionRuntime.vmCasperV1()
-      }
-
-      // Create transaction target
-      const transactionTarget = new TransactionTarget(undefined, storedTarget, undefined)
-
-      // Create pricing mode with FixedMode
-      const fixedMode = new FixedMode()
-      fixedMode.gasPriceTolerance = 1
-      fixedMode.additionalComputationFactor = 0
-
-      const pricingMode = new PricingMode()
-      pricingMode.fixed = fixedMode
-
-      // Create transaction entry point (custom for contract call)
-      const transactionEntryPoint = new TransactionEntryPoint()
-      transactionEntryPoint.custom = entryPoint
-
-      // Create transaction scheduling (standard/immediate)
-      const scheduling = new TransactionScheduling({}, undefined, undefined)
-
-      console.log('📝 Building TransactionV1Payload...', {
-        chainName: CHAIN_NAME,
-        initiator: publicKeyHex,
-        contractHash: cleanHash,
+      const session = DeployUtil.ExecutableDeployItem.newStoredContractByHash(
+        Uint8Array.from(Buffer.from(cleanHash, 'hex')),
         entryPoint,
-        argsCount: runtimeArgs.args.size
-      })
+        runtimeArgs
+      )
 
-      // Create TransactionV1Payload
-      const payload = TransactionV1Payload.build({
-        initiatorAddr,
-        args: runtimeArgs,
-        ttl: DEFAULT_TTL,
-        entryPoint: transactionEntryPoint,
-        pricingMode,
-        timestamp: Date.now(),
-        transactionTarget,
-        scheduling,
-        chainName: CHAIN_NAME
-      })
+      const payment = DeployUtil.standardPayment(paymentAmount)
+      const deploy = DeployUtil.makeDeploy(deployParams, session, payment)
+      const deployJson = DeployUtil.deployToJson(deploy)
 
-      // Create TransactionV1
-      const transaction = TransactionV1.makeTransactionV1(payload)
+      console.log('📝 Deploy JSON created, size:', JSON.stringify(deployJson).length, 'bytes')
+      console.log('🔐 Requesting signature from Casper Wallet...')
 
-      // Wrap in the required format: {"transaction": {"Version1": {...}}}
-      const transactionJson = {
-        transaction: {
-          Version1: TransactionV1.toJSON(transaction)
-        }
+      // Casper Wallet expects deploy as JSON STRING
+      const deployJsonString = JSON.stringify(deployJson)
+      const result = await provider.sign(deployJsonString, publicKeyHex)
+
+      console.log('✅ Wallet signed the deploy')
+
+      // Wallet returns signature, we need to add it to deploy and send it
+      if (!result || result.cancelled) {
+        throw new Error('User cancelled signing')
       }
 
-      console.log('📝 TransactionV1 JSON created:', JSON.stringify(transactionJson, null, 2))
+      // Add signature to deploy
+      const signedDeploy = DeployUtil.setSignature(
+        deploy,
+        result.signature,
+        CLPublicKey.fromHex(publicKeyHex)
+      )
 
-      // Use CSPR.click send method
-      const result = await clickRef.send(JSON.stringify(transactionJson), publicKeyHex)
+      // Get the deploy hash from the signed deploy
+      const deployHash = Buffer.from(signedDeploy.hash).toString('hex')
 
-      if (result?.cancelled) {
-        throw new Error('Transaction was cancelled by user')
-      }
+      console.log('✅ Deploy signed successfully!')
+      console.log('🔗 Deploy Hash:', deployHash)
+      console.log('🌐 View on explorer: https://testnet.cspr.live/deploy/' + deployHash)
+      console.log('⚠️ Note: Casper Wallet should handle sending the deploy to the network')
 
-      console.log('📤 CSPR.click send result:', result)
-
-      // Check for transaction hash
-      const txHash = result?.transactionHash || result?.deployHash
-
-      if (!txHash) {
-        throw new Error(`Transaction failed: ${JSON.stringify(result)}`)
-      }
-
-      console.log('✅ Transaction sent successfully:', txHash)
-      return txHash
+      // Return the hash immediately
+      // The wallet extension should handle sending the deploy to the network
+      return deployHash
     } catch (error: any) {
-      console.error('❌ Error creating/signing transaction:', error)
-      console.error('Error details:', {
-        message: error.message,
-        stack: error.stack
-      })
-      throw error
+      console.error('❌ Error creating/signing deploy:')
+      console.error('Error message:', error.message)
+      console.error('Error details:', error)
+      throw new Error(`Transaction failed: ${error.message || 'Unknown error'}`)
     }
   }
 
-  /**
-   * Create a duel - REAL BLOCKCHAIN TRANSACTION
-   */
-  async createDuel(
-    publicKey: string,
-    duration: number,
-    nftCollection: string,
-    maxParticipants: number,
-    entryFee: number
-  ): Promise<string> {
-    console.log('🚀 Creating duel on blockchain', {
-      publicKey,
-      duration,
-      nftCollection,
-      maxParticipants,
-      entryFee
-    })
-
+  async createDuel(publicKey: string, entryFee: number, duration: number, nftCollection: string, maxParticipants: number): Promise<string> {
     const entryFeeInMotes = csprToMotes(entryFee)
-
-    const runtimeArgs = Args.fromMap({
-      duration_seconds: new CLValueUInt64(duration),
-      nft_collection: new CLValueString(nftCollection),
-      max_participants: new CLValueUInt8(maxParticipants)
+    const runtimeArgs = RuntimeArgs.fromMap({
+      entry_fee: CLValueBuilder.u512(entryFeeInMotes),
+      duration: CLValueBuilder.u64(duration),
+      nft_collection: CLValueBuilder.string(nftCollection),
+      max_participants: CLValueBuilder.u8(maxParticipants)
     })
 
-    return await this.createAndSignTransaction(
+    return await this.createAndSignDeploy(
       publicKey,
       CONTRACT_ADDRESSES.DUEL_MANAGER,
       'create_duel',
       runtimeArgs,
-      '10000000000', // 10 CSPR gas payment
-      entryFeeInMotes // Attached value for payable function
+      '10000000000',
+      entryFeeInMotes
     )
   }
 
   async joinDuel(publicKey: string, duelId: number, entryFee: number): Promise<string> {
-    const runtimeArgs = Args.fromMap({
-      duel_id: new CLValueUInt64(duelId)
-    })
-    return await this.createAndSignTransaction(
-      publicKey,
-      CONTRACT_ADDRESSES.DUEL_MANAGER,
-      'join_duel',
-      runtimeArgs,
-      '5000000000',
-      csprToMotes(entryFee)
-    )
+    const runtimeArgs = RuntimeArgs.fromMap({ duel_id: CLValueBuilder.u64(duelId) })
+    return await this.createAndSignDeploy(publicKey, CONTRACT_ADDRESSES.DUEL_MANAGER, 'join_duel', runtimeArgs, '5000000000', csprToMotes(entryFee))
   }
 
   async startDuel(publicKey: string, duelId: number): Promise<string> {
-    const runtimeArgs = Args.fromMap({ duel_id: new CLValueUInt64(duelId) })
-    return await this.createAndSignTransaction(publicKey, CONTRACT_ADDRESSES.DUEL_MANAGER, 'start_duel', runtimeArgs)
+    const runtimeArgs = RuntimeArgs.fromMap({ duel_id: CLValueBuilder.u64(duelId) })
+    return await this.createAndSignDeploy(publicKey, CONTRACT_ADDRESSES.DUEL_MANAGER, 'start_duel', runtimeArgs)
   }
 
   async closeDuel(publicKey: string, duelId: number): Promise<string> {
-    const runtimeArgs = Args.fromMap({ duel_id: new CLValueUInt64(duelId) })
-    return await this.createAndSignTransaction(publicKey, CONTRACT_ADDRESSES.DUEL_MANAGER, 'close_duel', runtimeArgs)
+    const runtimeArgs = RuntimeArgs.fromMap({ duel_id: CLValueBuilder.u64(duelId) })
+    return await this.createAndSignDeploy(publicKey, CONTRACT_ADDRESSES.DUEL_MANAGER, 'close_duel', runtimeArgs)
   }
 
   async claimRewards(publicKey: string, duelId: number): Promise<string> {
-    const runtimeArgs = Args.fromMap({ duel_id: new CLValueUInt64(duelId) })
-    return await this.createAndSignTransaction(publicKey, CONTRACT_ADDRESSES.DUEL_MANAGER, 'claim_rewards', runtimeArgs)
+    const runtimeArgs = RuntimeArgs.fromMap({ duel_id: CLValueBuilder.u64(duelId) })
+    return await this.createAndSignDeploy(publicKey, CONTRACT_ADDRESSES.DUEL_MANAGER, 'claim_rewards', runtimeArgs)
   }
 
   async cancelDuel(publicKey: string, duelId: number): Promise<string> {
-    const runtimeArgs = Args.fromMap({ duel_id: new CLValueUInt64(duelId) })
-    return await this.createAndSignTransaction(publicKey, CONTRACT_ADDRESSES.DUEL_MANAGER, 'cancel_duel', runtimeArgs)
+    const runtimeArgs = RuntimeArgs.fromMap({ duel_id: CLValueBuilder.u64(duelId) })
+    return await this.createAndSignDeploy(publicKey, CONTRACT_ADDRESSES.DUEL_MANAGER, 'cancel_duel', runtimeArgs)
   }
 
   async claimRefund(publicKey: string, duelId: number): Promise<string> {
-    const runtimeArgs = Args.fromMap({ duel_id: new CLValueUInt64(duelId) })
-    return await this.createAndSignTransaction(publicKey, CONTRACT_ADDRESSES.DUEL_MANAGER, 'claim_refund', runtimeArgs)
+    const runtimeArgs = RuntimeArgs.fromMap({ duel_id: CLValueBuilder.u64(duelId) })
+    return await this.createAndSignDeploy(publicKey, CONTRACT_ADDRESSES.DUEL_MANAGER, 'claim_refund', runtimeArgs)
   }
 
   async executeBuy(publicKey: string, duelId: number, nftId: string): Promise<string> {
-    const runtimeArgs = Args.fromMap({
-      duel_id: new CLValueUInt64(duelId),
-      nft_id: new CLValueString(nftId)
+    const runtimeArgs = RuntimeArgs.fromMap({
+      duel_id: CLValueBuilder.u64(duelId),
+      nft_id: CLValueBuilder.string(nftId)
     })
-    return await this.createAndSignTransaction(publicKey, CONTRACT_ADDRESSES.TRADING_ENGINE, 'execute_buy', runtimeArgs)
+    return await this.createAndSignDeploy(publicKey, CONTRACT_ADDRESSES.TRADING_ENGINE, 'execute_buy', runtimeArgs)
   }
 
   async executeSell(publicKey: string, duelId: number, nftId: string): Promise<string> {
-    const runtimeArgs = Args.fromMap({
-      duel_id: new CLValueUInt64(duelId),
-      nft_id: new CLValueString(nftId)
+    const runtimeArgs = RuntimeArgs.fromMap({
+      duel_id: CLValueBuilder.u64(duelId),
+      nft_id: CLValueBuilder.string(nftId)
     })
-    return await this.createAndSignTransaction(publicKey, CONTRACT_ADDRESSES.TRADING_ENGINE, 'execute_sell', runtimeArgs)
+    return await this.createAndSignDeploy(publicKey, CONTRACT_ADDRESSES.TRADING_ENGINE, 'execute_sell', runtimeArgs)
   }
 
-  // Balance query is handled by CSPR.click directly
-  async getAccountBalance(publicKeyHex: string): Promise<string> {
-    // CSPR.click handles balance internally
-    return '0'
+  async waitForDeploy(deployHash: string, timeout: number = 60000): Promise<any> {
+    const startTime = Date.now()
+
+    console.log(`⏳ Waiting for deploy ${deployHash} to finalize...`)
+
+    while (Date.now() - startTime < timeout) {
+      try {
+        // Use API proxy to avoid CORS
+        const response = await fetch('/api/casper-rpc', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'info_get_deploy',
+            params: { deploy_hash: deployHash },
+            id: 1
+          })
+        })
+
+        const data = await response.json()
+
+        if (data.result?.execution_results?.[0]) {
+          const result = data.result.execution_results[0].result
+          if (result.Success) {
+            console.log('✅ Deploy finalized successfully')
+            return data.result
+          } else if (result.Failure) {
+            throw new Error(`Deploy failed: ${JSON.stringify(result.Failure)}`)
+          }
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 2000))
+      } catch (error) {
+        console.error('Error checking deploy status:', error)
+        await new Promise(resolve => setTimeout(resolve, 2000))
+      }
+    }
+
+    throw new Error('Deploy timeout')
   }
 
-  async waitForDeploy(deployHash: string): Promise<any> {
-    console.log('⏳ Waiting for deploy:', deployHash)
-    // Simple wait - in production you'd poll getDeploy
-    await new Promise(resolve => setTimeout(resolve, 5000))
-    return { success: true }
-  }
-
-  async getDeployStatus(deployHash: string): Promise<'pending' | 'success' | 'failed'> {
-    return 'pending'
-  }
-
-  // Stub methods for other operations
-  async getDuel(duelId: number): Promise<any> { return null }
-  async getActiveDuels(): Promise<number[]> { return [] }
-  async getPlatformStats(): Promise<any> { return { total_duels: 0, total_prize_distributed: '0', platform_fee_percentage: 5 } }
-  async getPortfolioValue(duelId: number, playerAddress: string): Promise<bigint> { return BigInt(0) }
-  async getPortfolioStats(duelId: number, playerAddress: string): Promise<any> { return null }
-  async getPortfolio(duelId: number, playerAddress: string): Promise<any> { return null }
-  async getLeaderboard(duelId: number, players: string[]): Promise<any[]> { return [] }
-  async getNFTPrice(nftId: string): Promise<bigint> { return BigInt(1000000000) }
-  async getMultiplePrices(nftIds: string[]): Promise<Array<{ id: string; price: bigint }>> { return nftIds.map(id => ({ id, price: BigInt(1000000000) })) }
-  async getPriceData(nftId: string): Promise<any> { return null }
-  async updatePrice(publicKey: string, nftId: string, price: number, source: string): Promise<string> {
-    const runtimeArgs = Args.fromMap({
-      nft_id: new CLValueString(nftId),
-      price: new CLValueUInt512(csprToMotes(price)),
-      source: new CLValueString(source)
-    })
-    return await this.createAndSignTransaction(publicKey, CONTRACT_ADDRESSES.PRICE_ORACLE, 'update_price', runtimeArgs)
-  }
-
-  async batchUpdatePrices(publicKey: string, updates: Array<{ nftId: string; price: number; source: string }>): Promise<string> {
-    // Implement batch update logic here
-    return 'batch-update'
-  }
+  async getDuelInfo(duelId: number): Promise<any> { return null }
+  async getUserDuels(publicKey: string): Promise<any[]> { return [] }
+  async getActiveDuels(): Promise<any[]> { return [] }
 }
 
 export const casperContracts = new CasperContractService()

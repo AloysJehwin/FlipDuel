@@ -41,20 +41,21 @@ export default function CreateDuelPage() {
       // 1. Create duel on Casper blockchain
       const deployHash = await casperContracts.createDuel(
         walletAddress,
-        duration * 60, // Convert minutes to seconds
-        selectedToken,
-        2, // Max participants (2 players for now)
-        entryFee
+        entryFee, // Entry fee in CSPR
+        duration * 60, // Duration in seconds
+        selectedToken, // NFT collection
+        2 // Max participants (2 players for now)
       )
 
       console.log('✅ Deploy hash:', deployHash)
 
-      // 2. Store duel metadata in Supabase immediately (don't wait for blockchain)
+      // 2. Store duel metadata in Supabase with deploy hash
       const duel = await createDuel(
         walletAddress,
         entryFee,
         selectedToken,
-        duration
+        duration,
+        deployHash  // Save the transaction hash
       )
 
       if (duel) {
@@ -64,12 +65,9 @@ export default function CreateDuelPage() {
         // Redirect to lobby instead of duel page
         router.push(`/lobby`)
 
-        // Check status in background (don't block UI)
-        casperContracts.waitForDeploy(deployHash, 60000).then(result => {
-          console.log('✅ Deploy result:', result)
-        }).catch(error => {
-          console.error('❌ Deploy failed:', error)
-        })
+        // Note: Status checking disabled for Casper 2.0
+        // The wallet handles transaction submission and users can check status on cspr.live
+        console.log('🔗 Check transaction status at: https://testnet.cspr.live/deploy/' + deployHash)
       } else {
         throw new Error('Failed to save duel metadata')
       }

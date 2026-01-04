@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import '../styles/globals.css'
-import { CSPRClickProvider } from '@/contexts/CSPRClickProvider'
 import { WalletProvider } from '@/contexts/WalletContext'
 
 export const metadata: Metadata = {
@@ -20,11 +19,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <CSPRClickProvider>
-          <WalletProvider>
-            {children}
-          </WalletProvider>
-        </CSPRClickProvider>
+        <WalletProvider>
+          {children}
+        </WalletProvider>
       </body>
     </html>
   )

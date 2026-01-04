@@ -1,83 +1,145 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
-
-interface TradeAction {
-  type: 'BUY' | 'SELL'
-  amount: number
-  price: number
-  timestamp: string
-}
-
-interface PlayerStats {
-  address: string
-  holdings: number
-  cash: number
-  totalValue: number
-  pnl: number
-  pnlPercent: number
-  trades: TradeAction[]
-}
+import TradingChart from '@/components/TradingChart'
+import { useWallet } from '@/contexts/WalletContext'
+import { getDuelById, getDuelParticipants, joinDuel, getDuelTrades, recordTrade, completeDuel, claimRewards } from '@/lib/duel-api'
+import { casperContracts } from '@/lib/casper-contracts'
+import { priceOracle } from '@/lib/price-oracle'
+import type { Duel, DuelParticipant, DuelTrade } from '@/lib/supabase'
 
 export default function DuelArenaPage() {
   const params = useParams()
   const router = useRouter()
-  const [timeRemaining, setTimeRemaining] = useState(15 * 60) // 15 minutes in seconds
-  const [currentPrice, setCurrentPrice] = useState(3245.67)
+  const { walletAddress } = useWallet()
+
+  const [duel, setDuel] = useState<Duel | null>(null)
+  const [participants, setParticipants] = useState<DuelParticipant[]>([])
+  const [trades, setTrades] = useState<DuelTrade[]>([])
+  const [loading, setLoading] = useState(true)
+  const [isJoining, setIsJoining] = useState(false)
+  const [isTrading, setIsTrading] = useState(false)
+
+  const [timeRemaining, setTimeRemaining] = useState(0)
+  const [currentPrice, setCurrentPrice] = useState(0)
+  const [priceHistory, setPriceHistory] = useState<Array<{ time: number; price: number }>>([])
   const [tradeAmount, setTradeAmount] = useState('')
-  const [duelStatus, setDuelStatus] = useState<'waiting' | 'active' | 'finished'>('active')
+  const [startingBalance] = useState(100) // Starting balance in test tokens (e.g., 100 USDT equivalent)
 
-  // Mock player data
-  const [player1, setPlayer1] = useState<PlayerStats>({
-    address: '0x7a3f...9d2c (You)',
-    holdings: 0.5,
-    cash: 0.838,
-    totalValue: 2.46,
-    pnl: 0.36,
-    pnlPercent: 17.14,
-    trades: [],
-  })
-
-  const [player2, setPlayer2] = useState<PlayerStats>({
-    address: '0x4b8e...1a5f',
-    holdings: 0.3,
-    cash: 1.02,
-    totalValue: 1.99,
-    pnl: -0.11,
-    pnlPercent: -5.24,
-    trades: [],
-  })
-
-  // Simulate price changes
+  // Load duel data
   useEffect(() => {
-    const priceInterval = setInterval(() => {
-      setCurrentPrice((prev) => {
-        const change = (Math.random() - 0.5) * 10
-        return Math.max(prev + change, 3000)
-      })
-    }, 2000)
+    if (params.id) {
+      loadDuel()
+    }
+  }, [params.id])
 
-    return () => clearInterval(priceInterval)
-  }, [])
+  const loadDuel = async () => {
+    try {
+      const duelData = await getDuelById(params.id as string)
+      if (!duelData) {
+        router.push('/lobby')
+        return
+      }
+
+      setDuel(duelData)
+
+      const participantsData = await getDuelParticipants(params.id as string)
+      setParticipants(participantsData)
+
+      const tradesData = await getDuelTrades(params.id as string)
+      setTrades(tradesData)
+
+      // Calculate time remaining if duel is active
+      if (duelData.status === 'active' && duelData.started_at) {
+        const started = new Date(duelData.started_at).getTime()
+        const duration = duelData.duration * 60 * 1000 // Convert minutes to ms
+        const elapsed = Date.now() - started
+        const remaining = Math.max(0, Math.floor((duration - elapsed) / 1000))
+
+        console.log('⏰ Timer calculation:', {
+          started: duelData.started_at,
+          duration: duelData.duration,
+          elapsed: Math.floor(elapsed / 1000) + 's',
+          remaining: remaining + 's'
+        })
+
+        setTimeRemaining(remaining)
+      } else if (duelData.status === 'waiting') {
+        // Duel hasn't started yet
+        setTimeRemaining(duelData.duration * 60)
+      }
+    } catch (error) {
+      console.error('Error loading duel:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // Countdown timer
   useEffect(() => {
-    if (duelStatus !== 'active') return
+    if (duel?.status !== 'active' || timeRemaining <= 0) return
 
     const timer = setInterval(() => {
-      setTimeRemaining((prev) => {
-        if (prev <= 1) {
-          setDuelStatus('finished')
-          return 0
-        }
-        return prev - 1
-      })
+      setTimeRemaining((prev) => prev > 0 ? prev - 1 : 0)
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [duelStatus])
+  }, [duel?.status])
+
+  // Handle timer expiry - only redirect if timer was previously > 0
+  useEffect(() => {
+    if (duel?.status === 'active' && timeRemaining === 0 && duel.started_at) {
+      // Check if duel actually expired (not just initialized)
+      const started = new Date(duel.started_at).getTime()
+      const duration = duel.duration * 60 * 1000
+      const hasExpired = Date.now() - started >= duration
+
+      if (hasExpired) {
+        console.log('⏱️ Duel time expired, redirecting to results...')
+        router.push(`/results/${params.id}`)
+      }
+    }
+  }, [timeRemaining, duel?.status, duel?.started_at, duel?.duration, router, params.id])
+
+  // Load real-time price data
+  useEffect(() => {
+    if (!duel) return
+
+    const loadPriceData = async () => {
+      try {
+        // Get historical chart data
+        const chartData = await priceOracle.getChartData(duel.trading_token, 1)
+        setPriceHistory(chartData)
+
+        // Get current price
+        const price = await priceOracle.getCurrentPrice(duel.trading_token)
+        setCurrentPrice(price)
+
+        console.log(`💹 Loaded price data for ${duel.trading_token}:`, {
+          current: price,
+          dataPoints: chartData.length
+        })
+      } catch (error) {
+        console.error('Error loading price data:', error)
+      }
+    }
+
+    loadPriceData()
+
+    // Start live price updates (every 5 seconds)
+    const cleanup = priceOracle.startLivePriceUpdates(
+      duel.trading_token,
+      (price) => {
+        setCurrentPrice(price)
+        setPriceHistory(prev => [...prev, { time: Date.now(), price }])
+      },
+      5000
+    )
+
+    return cleanup
+  }, [duel?.trading_token])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -85,28 +147,275 @@ export default function DuelArenaPage() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }
 
-  const handleBuy = () => {
-    const amount = parseFloat(tradeAmount)
-    if (!amount || amount <= 0) return
+  const handleJoinDuel = async () => {
+    if (!walletAddress || !duel) return
 
-    // TODO: Execute buy transaction
-    console.log('Buying', amount, 'at', currentPrice)
-    setTradeAmount('')
+    setIsJoining(true)
+    try {
+      // 1. Execute blockchain transaction
+      const joinTxHash = await casperContracts.joinDuel(
+        walletAddress,
+        duel.blockchain_id || 0,
+        Number(duel.entry_fee)
+      )
+
+      console.log('✅ Join transaction sent:', joinTxHash)
+
+      // 2. Update database
+      const success = await joinDuel(duel.id, walletAddress, joinTxHash)
+
+      if (success) {
+        alert(`Joined duel! Transaction: ${joinTxHash}`)
+        await loadDuel() // Reload to show updated participants
+      }
+    } catch (error: any) {
+      console.error('Error joining duel:', error)
+      alert(error.message || 'Failed to join duel')
+    } finally {
+      setIsJoining(false)
+    }
   }
 
-  const handleSell = () => {
+  const handleBuy = async () => {
     const amount = parseFloat(tradeAmount)
-    if (!amount || amount <= 0 || amount > player1.holdings) return
+    if (!amount || amount <= 0 || !walletAddress || !duel) return
 
-    // TODO: Execute sell transaction
-    console.log('Selling', amount, 'at', currentPrice)
-    setTradeAmount('')
+    setIsTrading(true)
+    try {
+      // 1. Execute blockchain buy transaction
+      const txHash = await casperContracts.executeBuy(
+        walletAddress,
+        duel.blockchain_id || 0,
+        duel.trading_token
+      )
+
+      console.log('✅ Buy transaction sent:', txHash)
+
+      // 2. Record trade in database
+      const participant = participants.find(p => p.wallet_address === walletAddress)
+      if (participant) {
+        await recordTrade(
+          duel.id,
+          participant.id,
+          walletAddress,
+          'buy',
+          duel.trading_token,
+          amount,
+          currentPrice,
+          txHash
+        )
+
+        await loadDuel() // Reload trades
+        setTradeAmount('')
+        alert(`Buy order executed! TX: ${txHash}`)
+      }
+    } catch (error: any) {
+      console.error('Error executing buy:', error)
+      alert(error.message || 'Failed to execute buy')
+    } finally {
+      setIsTrading(false)
+    }
   }
 
-  const isWinning = player1.pnlPercent > player2.pnlPercent
+  const handleSell = async () => {
+    const amount = parseFloat(tradeAmount)
+    if (!amount || amount <= 0 || !walletAddress || !duel) return
 
-  if (duelStatus === 'finished') {
-    router.push(`/results/${params.id}`)
+    setIsTrading(false)
+    try {
+      // 1. Execute blockchain sell transaction
+      const txHash = await casperContracts.executeSell(
+        walletAddress,
+        duel.blockchain_id || 0,
+        duel.trading_token
+      )
+
+      console.log('✅ Sell transaction sent:', txHash)
+
+      // 2. Record trade in database
+      const participant = participants.find(p => p.wallet_address === walletAddress)
+      if (participant) {
+        await recordTrade(
+          duel.id,
+          participant.id,
+          walletAddress,
+          'sell',
+          duel.trading_token,
+          amount,
+          currentPrice,
+          txHash
+        )
+
+        await loadDuel() // Reload trades
+        setTradeAmount('')
+        alert(`Sell order executed! TX: ${txHash}`)
+      }
+    } catch (error: any) {
+      console.error('Error executing sell:', error)
+      alert(error.message || 'Failed to execute sell')
+    } finally {
+      setIsTrading(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-primary-bg">
+        <Navbar />
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-retro-cherry"></div>
+            <p className="mt-4 text-text-muted">Loading duel...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!duel) {
+    return null
+  }
+
+  // Check if user needs to join
+  const userParticipant = participants.find(p => p.wallet_address === walletAddress)
+  const isParticipant = !!userParticipant
+  const needsToJoin = duel.status === 'waiting' && participants.length < 2 && !isParticipant
+
+  // Determine which participant is which based on current user
+  const currentUser = participants.find(p => p.wallet_address === walletAddress)
+  const opponent = participants.find(p => p.wallet_address !== walletAddress)
+
+  // Calculate stats for current user
+  const userTrades = trades.filter(t => t.wallet_address === walletAddress)
+  const userHoldings = userTrades.reduce((sum, t) => {
+    return t.action === 'buy' ? sum + Number(t.amount) : sum - Number(t.amount)
+  }, 0)
+
+  // Calculate stats for opponent
+  const opponentTrades = opponent ? trades.filter(t => t.wallet_address === opponent.wallet_address) : []
+  const opponentHoldings = opponentTrades.reduce((sum, t) => {
+    return t.action === 'buy' ? sum + Number(t.amount) : sum - Number(t.amount)
+  }, 0)
+
+  // Calculate P&L for both players based on current price
+  const initialCash = startingBalance // Use starting balance instead of entry fee
+
+  // Calculate user's cash spent/received from trades
+  const userCashSpent = userTrades.reduce((sum, t) => {
+    return t.action === 'buy' ? sum + (Number(t.amount) * Number(t.price)) : sum - (Number(t.amount) * Number(t.price))
+  }, 0)
+
+  const userCashRemaining = initialCash - userCashSpent
+  const userPortfolioValue = userHoldings * currentPrice
+  const userTotalValue = userCashRemaining + userPortfolioValue
+  const userPnL = userTotalValue - initialCash
+  const userPnLPercent = initialCash > 0 ? (userPnL / initialCash) * 100 : 0
+
+  // Calculate opponent's cash spent/received from trades
+  const opponentCashSpent = opponent ? opponentTrades.reduce((sum, t) => {
+    return t.action === 'buy' ? sum + (Number(t.amount) * Number(t.price)) : sum - (Number(t.amount) * Number(t.price))
+  }, 0) : 0
+
+  const opponentCashRemaining = opponent ? initialCash - opponentCashSpent : 0
+  const opponentPortfolioValue = opponent ? opponentHoldings * currentPrice : 0
+  const opponentTotalValue = opponent ? opponentCashRemaining + opponentPortfolioValue : 0
+  const opponentPnL = opponentTotalValue - initialCash
+  const opponentPnLPercent = initialCash > 0 ? (opponentPnL / initialCash) * 100 : 0
+
+  const handleCloseDuel = async () => {
+    if (!duel || !walletAddress || participants.length < 2) return
+
+    try {
+      console.log('🏁 Closing duel...')
+      console.log('Participants:', participants.length)
+      console.log('Current price:', currentPrice)
+
+      // Calculate final stats for EACH participant
+      const participantStats = participants.map(p => {
+        const pTrades = trades.filter(t => t.wallet_address === p.wallet_address)
+        const pHoldings = pTrades.reduce((sum, t) => {
+          return t.action === 'buy' ? sum + Number(t.amount) : sum - Number(t.amount)
+        }, 0)
+        const initialCash = Number(duel.entry_fee || 0)
+        const tradeCost = pTrades.reduce((sum, t) => {
+          return t.action === 'buy' ? sum + (Number(t.amount) * Number(t.price)) : sum - (Number(t.amount) * Number(t.price))
+        }, 0)
+        const totalValue = initialCash + (pHoldings * currentPrice) - tradeCost
+        const pnl = totalValue - initialCash
+        const pnlPercent = initialCash > 0 ? (pnl / initialCash) * 100 : 0
+
+        console.log(`📊 ${p.wallet_address}: P&L ${pnlPercent.toFixed(2)}%, Holdings: ${pHoldings}, Total Value: ${totalValue}`)
+
+        return {
+          participantId: p.id,
+          walletAddress: p.wallet_address,
+          finalBalance: totalValue,
+          pnl: pnl,
+          pnlPercent: pnlPercent
+        }
+      })
+
+      // Determine winner (highest P&L%)
+      // If tie, winner is randomly chosen
+      const sortedByPnL = [...participantStats].sort((a, b) => b.pnlPercent - a.pnlPercent)
+
+      // Check if it's a tie
+      const topPnL = sortedByPnL[0].pnlPercent
+      const tiedParticipants = sortedByPnL.filter(p => p.pnlPercent === topPnL)
+
+      const winner = tiedParticipants.length > 1
+        ? tiedParticipants[Math.floor(Math.random() * tiedParticipants.length)]
+        : sortedByPnL[0]
+
+      console.log('🏆 Winner:', winner.walletAddress, 'with', winner.pnlPercent.toFixed(2), '%', tiedParticipants.length > 1 ? '(tie - random winner)' : '')
+
+      // Close duel on blockchain
+      const closeTxHash = await casperContracts.closeDuel(
+        walletAddress,
+        duel.blockchain_id || 0
+      )
+
+      console.log('✅ Duel closed:', closeTxHash)
+
+      // Update database
+      await completeDuel(
+        duel.id,
+        winner.walletAddress,
+        participantStats.map(p => ({
+          participantId: p.participantId,
+          finalBalance: p.finalBalance,
+          pnl: p.pnl,
+          pnlPercent: p.pnlPercent
+        })),
+        closeTxHash
+      )
+
+      console.log('✅ Database updated')
+
+      // If current user is the winner, claim rewards
+      if (winner.walletAddress === walletAddress) {
+        console.log('🏆 You won! Claiming rewards...')
+        try {
+          const claimTxHash = await casperContracts.claimRewards(
+            walletAddress,
+            duel.blockchain_id || 0
+          )
+          console.log('✅ Rewards claimed:', claimTxHash)
+
+          // Update database with claim transaction
+          await claimRewards(winner.participantId, claimTxHash)
+        } catch (claimError) {
+          console.error('❌ Error claiming rewards:', claimError)
+          // Don't block redirect if claim fails
+        }
+      }
+
+      // Redirect to results
+      router.push(`/results/${duel.id}`)
+    } catch (error) {
+      console.error('Error closing duel:', error)
+      alert('Failed to close duel: ' + (error as Error).message)
+    }
   }
 
   return (
@@ -118,148 +427,171 @@ export default function DuelArenaPage() {
           {/* Timer Header */}
           <div className="retro-frame bg-surface mb-6 p-6 text-center">
             <div className="text-sm retro-subheading text-text-primary mb-2">
-              TIME REMAINING
+              {duel.status === 'waiting' ? 'WAITING FOR OPPONENT' : 'TIME REMAINING'}
             </div>
             <div className="text-6xl font-retro text-retro-cherry mb-2 tracking-wider">
-              {formatTime(timeRemaining)}
+              {duel.status === 'waiting' ? '--:--' : formatTime(timeRemaining)}
             </div>
             <div className="text-sm text-text-muted">
-              Trading CSPR • Entry Fee: 0.1 CSPR
+              Trading {duel.trading_token} • Entry Fee: {duel.entry_fee} CSPR
             </div>
           </div>
+
+          {/* Join Duel Card (if user needs to join) */}
+          {needsToJoin && (
+            <div className="card-retro mb-6 bg-retro-cherry/20 border-retro-cherry text-center">
+              <h3 className="retro-subheading text-xl mb-4">JOIN THIS DUEL</h3>
+              <p className="text-text-muted mb-6">
+                Entry Fee: <span className="font-bold text-retro-cherry">{duel.entry_fee} CSPR</span>
+              </p>
+              <button
+                onClick={handleJoinDuel}
+                disabled={isJoining || !walletAddress}
+                className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isJoining ? 'JOINING...' : 'JOIN DUEL'}
+              </button>
+              {!walletAddress && (
+                <p className="mt-4 text-xs text-retro-cherry">Please connect your wallet first</p>
+              )}
+            </div>
+          )}
 
           {/* Players Comparison */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            {/* Player 1 (You) */}
-            <div className={`card-retro ${isWinning ? 'bg-accent-light-gray/20 border-accent-light-gray' : 'bg-retro-cherry/20 border-retro-cherry'}`}>
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <div className="retro-badge bg-retro-cherry mb-2">YOU</div>
-                  <div className="font-mono text-sm text-text-primary">
-                    {player1.address}
+          {participants.length >= 1 && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+              {/* Current User */}
+              {currentUser && (
+                <div className={`card-retro ${userPnLPercent >= opponentPnLPercent ? 'bg-accent-light-gray/20 border-accent-light-gray' : 'bg-retro-cherry/20 border-retro-cherry'}`}>
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <div className="retro-badge bg-retro-cherry mb-2">YOU</div>
+                      <div className="font-mono text-sm text-text-primary">
+                        {currentUser.wallet_address.slice(0, 8)}...{currentUser.wallet_address.slice(-6)}
+                      </div>
+                    </div>
+                    <div className={`text-3xl font-retro ${userPnLPercent >= 0 ? 'text-accent-light-gray' : 'text-retro-cherry'}`}>
+                      {userPnLPercent > 0 ? '+' : ''}{userPnLPercent.toFixed(2)}%
+                    </div>
                   </div>
-                </div>
-                <div className={`text-3xl font-retro ${
-                  player1.pnlPercent >= 0 ? 'text-accent-light-gray' : 'text-retro-cherry'
-                }`}>
-                  {player1.pnlPercent > 0 ? '+' : ''}{player1.pnlPercent.toFixed(2)}%
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-surface-light border-2 border-accent-gray p-3 rounded-lg">
-                  <div className="text-xs text-text-muted uppercase">Holdings</div>
-                  <div className="font-bold text-text-primary">{player1.holdings.toFixed(4)} CSPR</div>
-                </div>
-                <div className="bg-surface-light border-2 border-accent-gray p-3 rounded-lg">
-                  <div className="text-xs text-text-muted uppercase">Cash</div>
-                  <div className="font-bold text-text-primary">{player1.cash.toFixed(4)} CSPR</div>
-                </div>
-                <div className="bg-surface-light border-2 border-accent-gray p-3 rounded-lg">
-                  <div className="text-xs text-text-muted uppercase">Total Value</div>
-                  <div className="font-bold text-retro-cherry">{player1.totalValue.toFixed(4)} CSPR</div>
-                </div>
-                <div className="bg-surface-light border-2 border-accent-gray p-3 rounded-lg">
-                  <div className="text-xs text-text-muted uppercase">P&L</div>
-                  <div className={`font-bold ${player1.pnl >= 0 ? 'text-accent-light-gray' : 'text-retro-cherry'}`}>
-                    {player1.pnl > 0 ? '+' : ''}{player1.pnl.toFixed(4)} CSPR
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-surface-light border-2 border-accent-gray p-2 rounded-lg">
+                      <div className="text-xs text-text-muted uppercase">Cash</div>
+                      <div className="font-bold text-text-primary text-sm">${userCashRemaining.toFixed(2)}</div>
+                    </div>
+                    <div className="bg-surface-light border-2 border-accent-gray p-2 rounded-lg">
+                      <div className="text-xs text-text-muted uppercase">Holdings</div>
+                      <div className="font-bold text-text-primary text-sm">{userHoldings.toFixed(4)}</div>
+                      <div className="text-xs text-text-muted">${userPortfolioValue.toFixed(2)}</div>
+                    </div>
+                    <div className="bg-surface-light border-2 border-accent-gray p-2 rounded-lg">
+                      <div className="text-xs text-text-muted uppercase">P&L</div>
+                      <div className={`font-bold text-sm ${userPnL >= 0 ? 'text-accent-light-gray' : 'text-retro-cherry'}`}>
+                        {userPnL > 0 ? '+' : ''}${userPnL.toFixed(2)}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
+
+              {/* Opponent */}
+              {opponent ? (
+                <div className={`card-retro ${opponentPnLPercent > userPnLPercent ? 'bg-accent-light-gray/20 border-accent-light-gray' : 'bg-retro-cherry/20 border-retro-cherry'}`}>
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <div className="retro-badge bg-accent-gray text-text-primary mb-2">OPPONENT</div>
+                      <div className="font-mono text-sm text-text-primary">
+                        {opponent.wallet_address.slice(0, 8)}...{opponent.wallet_address.slice(-6)}
+                      </div>
+                    </div>
+                    <div className={`text-3xl font-retro ${opponentPnLPercent >= 0 ? 'text-accent-light-gray' : 'text-retro-cherry'}`}>
+                      {opponentPnLPercent > 0 ? '+' : ''}{opponentPnLPercent.toFixed(2)}%
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-surface-light border-2 border-accent-gray p-2 rounded-lg">
+                      <div className="text-xs text-text-muted uppercase">Cash</div>
+                      <div className="font-bold text-text-primary text-sm">${opponentCashRemaining.toFixed(2)}</div>
+                    </div>
+                    <div className="bg-surface-light border-2 border-accent-gray p-2 rounded-lg">
+                      <div className="text-xs text-text-muted uppercase">Holdings</div>
+                      <div className="font-bold text-text-primary text-sm">{opponentHoldings.toFixed(4)}</div>
+                      <div className="text-xs text-text-muted">${opponentPortfolioValue.toFixed(2)}</div>
+                    </div>
+                    <div className="bg-surface-light border-2 border-accent-gray p-2 rounded-lg">
+                      <div className="text-xs text-text-muted uppercase">P&L</div>
+                      <div className={`font-bold text-sm ${opponentPnL >= 0 ? 'text-accent-light-gray' : 'text-retro-cherry'}`}>
+                        {opponentPnL > 0 ? '+' : ''}${opponentPnL.toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="card-retro bg-surface-light/50 border-accent-gray border-dashed">
+                  <div className="text-center py-8">
+                    <div className="text-4xl mb-4">⏳</div>
+                    <div className="retro-subheading mb-2">WAITING FOR OPPONENT</div>
+                    <div className="text-text-muted text-sm">Duel will start when another player joins</div>
+                  </div>
+                </div>
+              )}
             </div>
-
-            {/* Player 2 (Opponent) */}
-            <div className={`card-retro ${!isWinning ? 'bg-accent-light-gray/20 border-accent-light-gray' : 'bg-retro-cherry/20 border-retro-cherry'}`}>
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <div className="retro-badge bg-accent-gray text-text-primary mb-2">OPPONENT</div>
-                  <div className="font-mono text-sm text-text-primary">
-                    {player2.address}
-                  </div>
-                </div>
-                <div className={`text-3xl font-retro ${
-                  player2.pnlPercent >= 0 ? 'text-accent-light-gray' : 'text-retro-cherry'
-                }`}>
-                  {player2.pnlPercent > 0 ? '+' : ''}{player2.pnlPercent.toFixed(2)}%
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-surface-light border-2 border-accent-gray p-3 rounded-lg">
-                  <div className="text-xs text-text-muted uppercase">Holdings</div>
-                  <div className="font-bold text-text-primary">{player2.holdings.toFixed(4)} CSPR</div>
-                </div>
-                <div className="bg-surface-light border-2 border-accent-gray p-3 rounded-lg">
-                  <div className="text-xs text-text-muted uppercase">Cash</div>
-                  <div className="font-bold text-text-primary">{player2.cash.toFixed(4)} CSPR</div>
-                </div>
-                <div className="bg-surface-light border-2 border-accent-gray p-3 rounded-lg">
-                  <div className="text-xs text-text-muted uppercase">Total Value</div>
-                  <div className="font-bold text-retro-cherry">{player2.totalValue.toFixed(4)} CSPR</div>
-                </div>
-                <div className="bg-surface-light border-2 border-accent-gray p-3 rounded-lg">
-                  <div className="text-xs text-text-muted uppercase">P&L</div>
-                  <div className={`font-bold ${player2.pnl >= 0 ? 'text-accent-light-gray' : 'text-retro-cherry'}`}>
-                    {player2.pnl > 0 ? '+' : ''}{player2.pnl.toFixed(4)} CSPR
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Price Chart Area */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Current Price */}
-              <div className="card-retro bg-retro-cherry/20 border-retro-cherry text-text-primary">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <div className="text-sm uppercase mb-1">CSPR Current Price</div>
-                    <div className="text-4xl font-retro text-retro-cherry">${currentPrice.toFixed(2)}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xs uppercase mb-1">24h Change</div>
-                    <div className="text-xl font-bold text-accent-light-gray">+2.34%</div>
-                  </div>
+              {/* Trading Chart */}
+              {priceHistory.length > 0 && (
+                <div className="card-retro">
+                  <div className="retro-subheading mb-4">PRICE CHART - {duel.trading_token}</div>
+                  <TradingChart
+                    data={priceHistory}
+                    trades={trades.map(t => ({
+                      time: new Date(t.timestamp).getTime(),
+                      price: Number(t.price),
+                      action: t.action as 'buy' | 'sell',
+                      amount: Number(t.amount)
+                    }))}
+                    currentPrice={currentPrice}
+                    tokenSymbol={duel.trading_token}
+                  />
                 </div>
-              </div>
-
-              {/* Mock Chart */}
-              <div className="card-retro">
-                <div className="retro-subheading mb-4">PRICE CHART</div>
-                <div className="bg-surface border-2 border-accent-gray p-8 h-64 flex items-center justify-center rounded-lg">
-                  <div className="text-center text-text-muted">
-                    <div className="w-16 h-16 mx-auto mb-4 opacity-30">
-                      <svg viewBox="0 0 100 100" className="w-full h-full">
-                        <polyline points="10,90 30,60 50,70 70,30 90,50" fill="none" stroke="currentColor" strokeWidth="4" className="text-retro-cherry" />
-                        <circle cx="30" cy="60" r="4" className="fill-retro-cherry" />
-                        <circle cx="50" cy="70" r="4" className="fill-retro-cherry" />
-                        <circle cx="70" cy="30" r="4" className="fill-retro-cherry" />
-                      </svg>
-                    </div>
-                    <div className="text-sm">Live price chart will display here</div>
-                    <div className="text-xs">(Real-time candlestick chart)</div>
-                  </div>
-                </div>
-              </div>
+              )}
 
               {/* Trade History */}
               <div className="card-retro">
-                <div className="retro-subheading mb-4">YOUR TRADES</div>
-                <div className="space-y-2 max-h-48 overflow-y-auto scrollbar-retro">
-                  {player1.trades.length === 0 ? (
+                <div className="retro-subheading mb-4">TRADE HISTORY ({trades.length})</div>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {trades.length === 0 ? (
                     <div className="text-center py-8 text-text-muted text-sm">
                       No trades yet. Make your first move!
                     </div>
                   ) : (
-                    player1.trades.map((trade, idx) => (
-                      <div key={idx} className="flex justify-between items-center bg-surface border-2 border-accent-gray p-2 rounded-lg">
-                        <div className={`retro-badge ${trade.type === 'BUY' ? 'bg-accent-light-gray' : 'bg-retro-cherry'}`}>
-                          {trade.type}
+                    trades.map((trade) => (
+                      <div key={trade.id} className="flex justify-between items-center bg-surface border-2 border-accent-gray p-3 rounded-lg">
+                        <div className={`retro-badge ${trade.action === 'buy' ? 'bg-accent-light-gray' : 'bg-retro-cherry'}`}>
+                          {trade.action.toUpperCase()}
                         </div>
-                        <div className="font-mono text-sm text-text-primary">{trade.amount.toFixed(4)} CSPR</div>
-                        <div className="font-mono text-sm text-text-primary">${trade.price.toFixed(2)}</div>
-                        <div className="text-xs text-text-muted">{trade.timestamp}</div>
+                        <div className="font-mono text-sm text-text-primary">
+                          {trade.wallet_address.slice(0, 6)}...{trade.wallet_address.slice(-4)}
+                        </div>
+                        <div className="font-mono text-sm text-text-primary">
+                          {Number(trade.amount).toFixed(4)} {trade.token}
+                        </div>
+                        <div className="font-mono text-sm text-text-primary">${Number(trade.price).toFixed(2)}</div>
+                        {trade.tx_hash && (
+                          <a
+                            href={`https://testnet.cspr.live/deploy/${trade.tx_hash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-retro-cherry hover:underline"
+                          >
+                            View TX
+                          </a>
+                        )}
                       </div>
                     ))
                   )}
@@ -271,81 +603,100 @@ export default function DuelArenaPage() {
             <div className="lg:col-span-1">
               <div className="sticky top-24 space-y-4">
                 {/* Trade Input */}
-                <div className="card-retro">
-                  <h3 className="retro-subheading mb-4">TRADE</h3>
+                {isParticipant && duel.status === 'active' ? (
+                  <div className="card-retro">
+                    <h3 className="retro-subheading mb-4">TRADE</h3>
 
-                  <div className="mb-4">
-                    <label className="text-xs text-text-muted uppercase mb-2 block">
-                      Amount (CSPR)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.0001"
-                      value={tradeAmount}
-                      onChange={(e) => setTradeAmount(e.target.value)}
-                      placeholder="0.0000"
-                      className="w-full px-4 py-3 border-2 border-accent-gray bg-surface text-text-primary font-bold text-lg focus:outline-none focus:border-retro-cherry rounded-lg"
-                    />
-                  </div>
+                    <div className="mb-4">
+                      <label className="text-xs text-text-muted uppercase mb-2 block">
+                        Amount ({duel.trading_token})
+                      </label>
+                      <input
+                        type="number"
+                        step="0.0001"
+                        value={tradeAmount}
+                        onChange={(e) => setTradeAmount(e.target.value)}
+                        placeholder="0.0000"
+                        className="w-full px-4 py-3 border-2 border-accent-gray bg-surface text-text-primary font-bold text-lg focus:outline-none focus:border-retro-cherry rounded-lg"
+                      />
+                    </div>
 
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <button
-                      onClick={handleBuy}
-                      disabled={!tradeAmount || parseFloat(tradeAmount) <= 0}
-                      className="btn-success disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      BUY
-                    </button>
-                    <button
-                      onClick={handleSell}
-                      disabled={!tradeAmount || parseFloat(tradeAmount) > player1.holdings}
-                      className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      SELL
-                    </button>
-                  </div>
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      <button
+                        onClick={handleBuy}
+                        disabled={
+                          !tradeAmount ||
+                          parseFloat(tradeAmount) <= 0 ||
+                          parseFloat(tradeAmount) * currentPrice > userCashRemaining ||
+                          isTrading ||
+                          currentPrice === 0
+                        }
+                        className="btn-success disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isTrading ? 'BUYING...' : 'BUY'}
+                      </button>
+                      <button
+                        onClick={handleSell}
+                        disabled={!tradeAmount || parseFloat(tradeAmount) <= 0 || parseFloat(tradeAmount) > userHoldings || isTrading}
+                        className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isTrading ? 'SELLING...' : 'SELL'}
+                      </button>
+                    </div>
 
-                  <div className="text-xs text-text-muted">
-                    Available: {player1.holdings.toFixed(4)} CSPR
+                    <div className="space-y-1 text-xs text-text-muted">
+                      <div className="flex justify-between">
+                        <span>Available Cash:</span>
+                        <span className="font-bold text-text-primary">${userCashRemaining.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Holdings:</span>
+                        <span className="font-bold text-text-primary">{userHoldings.toFixed(4)} {duel.trading_token}</span>
+                      </div>
+                      {tradeAmount && parseFloat(tradeAmount) > 0 && (
+                        <div className="flex justify-between border-t border-accent-gray pt-1 mt-1">
+                          <span>Est. Cost:</span>
+                          <span className="font-bold text-retro-cherry">${(parseFloat(tradeAmount) * currentPrice).toFixed(2)}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-
-                {/* Status Indicator */}
-                <div className={`retro-frame p-4 text-center ${
-                  isWinning ? 'bg-accent-light-gray/20 border-accent-light-gray' : 'bg-retro-cherry/20 border-retro-cherry'
-                }`}>
-                  <div className="text-sm uppercase mb-2 text-text-primary font-bold">
-                    {isWinning ? 'YOU ARE WINNING!' : 'YOU ARE LOSING'}
+                ) : (
+                  <div className="card-retro bg-surface-light text-center py-8">
+                    <div className="text-text-muted">
+                      {duel.status === 'waiting' ? 'Trading will start when duel begins' : 'Spectator mode'}
+                    </div>
                   </div>
-                  <div className="text-xs text-text-muted">
-                    {isWinning
-                      ? 'Keep up the great trading!'
-                      : 'Make smart moves to turn it around!'}
-                  </div>
-                </div>
+                )}
 
                 {/* Quick Stats */}
                 <div className="card bg-surface">
-                  <div className="retro-subheading text-sm mb-3">QUICK STATS</div>
+                  <div className="retro-subheading text-sm mb-3">DUEL INFO</div>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-text-muted">Current Rank</span>
-                      <span className="font-bold text-text-primary">
-                        {isWinning ? '1st' : '2nd'}
-                      </span>
+                      <span className="text-text-muted">Status</span>
+                      <span className="font-bold text-retro-cherry uppercase">{duel.status}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-text-muted">Lead/Deficit</span>
-                      <span className={`font-bold ${
-                        player1.pnlPercent > player2.pnlPercent ? 'text-accent-light-gray' : 'text-retro-cherry'
-                      }`}>
-                        {Math.abs(player1.pnlPercent - player2.pnlPercent).toFixed(2)}%
-                      </span>
+                      <span className="text-text-muted">Duration</span>
+                      <span className="font-bold text-text-primary">{duel.duration} min</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-text-muted">Prize Pool</span>
-                      <span className="font-bold text-retro-cherry">0.2 CSPR</span>
+                      <span className="font-bold text-retro-cherry">{duel.prize_pool} CSPR</span>
                     </div>
+                    {duel.create_tx_hash && (
+                      <div className="pt-2 border-t border-accent-gray">
+                        <a
+                          href={`https://testnet.cspr.live/deploy/${duel.create_tx_hash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-retro-cherry hover:underline break-all"
+                        >
+                          View Create TX
+                        </a>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -353,7 +704,6 @@ export default function DuelArenaPage() {
           </div>
         </div>
       </main>
-
     </div>
   )
 }

@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar'
 import { getAllDuels } from '@/lib/duel-api'
 import type { Duel as SupabaseDuel } from '@/lib/supabase'
 import { casperWallet } from '@/lib/casper-wallet'
+import { useWallet } from '@/contexts/WalletContext'
 
 interface Duel {
   id: string
@@ -19,6 +20,7 @@ interface Duel {
 }
 
 export default function LobbyPage() {
+  const { walletAddress } = useWallet()
   const [duels, setDuels] = useState<Duel[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'waiting' | 'active'>('waiting')
@@ -311,12 +313,21 @@ export default function LobbyPage() {
 
                 {/* Action Button */}
                 {duel.status === 'waiting' ? (
-                  <Link
-                    href={`/duel/${duel.id}`}
-                    className="btn-primary w-full text-center block"
-                  >
-                    JOIN DUEL
-                  </Link>
+                  duel.creator === walletAddress ? (
+                    <Link
+                      href={`/duel/${duel.id}`}
+                      className="btn-secondary w-full text-center block"
+                    >
+                      VIEW YOUR DUEL
+                    </Link>
+                  ) : (
+                    <Link
+                      href={`/duel/${duel.id}`}
+                      className="btn-primary w-full text-center block"
+                    >
+                      JOIN DUEL
+                    </Link>
+                  )
                 ) : (
                   <Link
                     href={`/duel/${duel.id}`}

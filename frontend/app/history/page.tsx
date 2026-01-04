@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import { casperWallet } from '@/lib/casper-wallet'
+import { useWallet } from '@/contexts/WalletContext'
 import { getUserDuelHistory, getDuelParticipants } from '@/lib/duel-api'
 import type { Duel, DuelParticipant } from '@/lib/supabase'
 
@@ -23,37 +24,22 @@ interface HistoricalDuel {
 }
 
 export default function HistoryPage() {
+  const { walletAddress } = useWallet()
   const [filter, setFilter] = useState<'all' | 'won' | 'lost'>('all')
-  const [userWalletAddress, setUserWalletAddress] = useState<string | null>(null)
   const [history, setHistory] = useState<HistoricalDuel[]>([])
   const [loading, setLoading] = useState(true)
-
-  // Get connected wallet address from Casper wallet
-  useEffect(() => {
-    const loadWalletAddress = async () => {
-      try {
-        const wallet = await casperWallet.restoreConnection()
-        if (wallet && wallet.publicKey) {
-          setUserWalletAddress(wallet.publicKey)
-        }
-      } catch (error) {
-        console.error('Error loading wallet:', error)
-      }
-    }
-    loadWalletAddress()
-  }, [])
 
   // Fetch user's duel history
   useEffect(() => {
     const fetchHistory = async () => {
-      if (!userWalletAddress) {
+      if (!walletAddress) {
         setLoading(false)
         return
       }
 
       try {
         setLoading(true)
-        const userHistory = await getUserDuelHistory(userWalletAddress)
+        const userHistory = await getUserDuelHistory(walletAddress)
 
         // Process the history to get opponent information
         const processedHistory: HistoricalDuel[] = []
@@ -66,14 +52,14 @@ export default function HistoryPage() {
 
           // Get all participants to find the opponent
           const participants = await getDuelParticipants(duel.id)
-          const opponent = participants.find(p => p.wallet_address !== userWalletAddress)
+          const opponent = participants.find(p => p.wallet_address !== walletAddress)
 
           if (!opponent) continue
 
           // Determine result
           let result: 'won' | 'lost' | 'pending' = 'pending'
           if (duel.winner_address) {
-            result = duel.winner_address === userWalletAddress ? 'won' : 'lost'
+            result = duel.winner_address === walletAddress ? 'won' : 'lost'
           }
 
           processedHistory.push({
@@ -107,7 +93,7 @@ export default function HistoryPage() {
     }
 
     fetchHistory()
-  }, [userWalletAddress])
+  }, [walletAddress])
 
   const filteredHistory = history.filter(duel => {
     if (filter === 'all') return true
@@ -142,7 +128,7 @@ export default function HistoryPage() {
               <div className="card-retro px-6 py-3">
                 <div className="text-xs text-text-muted uppercase mb-1">Your Wallet</div>
                 <div className="font-mono font-bold text-text-primary text-sm">
-                  {userWalletAddress ? casperWallet.formatAddress(userWalletAddress) : 'Not Connected'}
+                  {walletAddress ? casperWallet.formatAddress(walletAddress) : 'Not Connected'}
                 </div>
               </div>
             </div>
@@ -349,12 +335,12 @@ export default function HistoryPage() {
                 <h3 className="retro-heading text-2xl mb-2">NO DUELS FOUND</h3>
                 <p className="text-text-muted mb-6">
                   {filter === 'all'
-                    ? userWalletAddress
+                    ? walletAddress
                       ? "You haven't participated in any duels yet!"
                       : "Please connect your wallet to view your duel history."
                     : `No ${filter} duels to display.`}
                 </p>
-                {userWalletAddress && (
+                {walletAddress && (
                   <Link href="/lobby" className="btn-primary">
                     JOIN YOUR FIRST DUEL
                   </Link>
